@@ -1,0 +1,23 @@
+= ECS Service Module
+:toc:
+:!toc-title:
+:!toc-placement:
+
+A simplification to get ECS Services up and running, without having to think about the details.
+
+toc::[]
+
+== About
+
+This module helps you get up and running with an ECS Service.
+It sets up your service, and links it with VPCs, load balancers, monitoring, and more.
+
+You can focus on your application, and the module takes care of getting it running 🎉
+
+== Examples
+
+The link:examples/[examples folder] is the home of example usages of this module.
+These are the examples you can find there.
+
+link:examples/simple/[Simple]::
+The minimum usage of this module.

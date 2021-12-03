@@ -1,0 +1,31 @@
+version: 2.1
+
+orbs:
+  terraform: circleci/terraform@3.0.0
+
+# Preferably these would be a CircleCI parameter,
+# but parameters doesn't support lists or maps :(
+terraform-versions: &terraform-versions
+  - 1.0.11
+
+example-folders: &example-folders
+  - examples/simple
+
+workflows:
+  validate:
+    jobs:
+      - terraform/validate:
+          name: Validate Module
+          checkout: true
+          path: .
+          matrix:
+            parameters:
+              tag: *terraform-versions
+      - terraform/validate:
+          name: Validate Examples
+          checkout: true
+          matrix:
+            parameters:
+              tag: *terraform-versions
+              path: *example-folders
+
