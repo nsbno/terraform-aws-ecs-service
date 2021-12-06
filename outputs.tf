@@ -23,6 +23,11 @@ output "task_execution_role_arn" {
   value       = aws_iam_role.execution.arn
 }
 
+output "security_group_id" {
+  description = "The ID of the service's security group"
+  value       = aws_security_group.ecs_service[0].id
+}
+
 output "log_group_arn" {
   description = "The ARN of the service's log group"
   value       = aws_cloudwatch_log_group.main.arn
