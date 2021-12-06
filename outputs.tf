@@ -13,6 +13,16 @@ output "task_role_arn" {
   value       = aws_iam_role.task.arn
 }
 
+output "task_execution_role_name" {
+  description = "The name of the task role"
+  value       = aws_iam_role.execution.arn
+}
+
+output "task_execution_role_arn" {
+  description = "The ARN of the task role"
+  value       = aws_iam_role.execution.arn
+}
+
 output "log_group_arn" {
   description = "The ARN of the service's log group"
   value       = aws_cloudwatch_log_group.main.arn
