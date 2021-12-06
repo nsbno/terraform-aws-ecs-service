@@ -21,3 +21,97 @@ These are the examples you can find there.
 
 link:examples/simple/[Simple]::
 The minimum usage of this module.
+
+
+== Arguments
+
+These are the arguments that can not be expressed by the terraform module
+
+=== `application_container` and `sidecar_containers`
+
+These arguments are where you specify everything ECS needs to know about your container and how to run it.
+
+Both use the same format, but `application_container` will automatically be set as an essential container, while `sidecar_container` will not be set as essential.
+
+
+|===
+|Name |Description |Required |Default
+
+|`name`
+|The name of the container, must be unique.
+|yes
+|n/a
+
+|`image`
+|The image (and tag) of the container to run
+|yes
+|n/a
+
+|`command`
+|A command to run on the container
+|no
+|null
+
+|`essential`
+|If the container is essential for the service
+|no
+|`true` if `application_container`, `false` otherwise
+
+|`environment`
+|A map of environment variables
+|no
+|Empty map
+
+|`secrets`
+|A map of secrets
+|no
+|Empty map
+
+|`port`
+|A port to expose from the container.
+|depends (required for `application_container`)
+|null
+
+|`protocol`
+|The application layer protocol for the exposed port.
+|depends (required for `application_container`)
+|null
+
+|`health_check`
+|Container health checks. Not to be confused with LB health checks.
+|no
+|null
+|===
+
+
+
+=== `lb_health_check`
+
+These are health checks that will be executed by the loadbalancer.
+
+See link:https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group#health_check[the `health_check` documentation for `aws_lb_target_group`].
+
+
+== Considerations
+
+=== Platform differences
+
+The different platforms are quite similar, but some considerations have to be taken.
+
+==== Fargate
+
+You must make sure that the following arguments are present:
+
+* `lb_health_check`
+* `private_subnet_ids`
+
+==== ECS Anywhere
+
+Please keep the considerations from AWS in mind.
+Only use ECS Anywhere if it is really neccessary.
+https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-anywhere.html#ecs-anywhere-considerations
+
+Main things to note:
+
+* There is no VPC networking
+* No loadbalancers
