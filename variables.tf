@@ -15,12 +15,12 @@ variable "cluster_id" {
 
 variable "application_container" {
   description = "The application that is being run by the service"
-  type = map(any)
+  type = any
 }
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
-  type = list(map(any))
+  type = any
   default = []
 }
 
