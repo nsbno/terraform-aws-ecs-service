@@ -72,6 +72,46 @@ variable "desired_count" {
   default     = 1
 }
 
+variable "autoscaling" {
+  description = "Enable autoscaling for the service"
+  type = object({
+    min_capacity = number
+    max_capacity = number
+    metric_type  = string
+    target_value = string
+  })
+  default = null
+}
+
+variable "autoscaling_schedule" {
+  description = <<-EOF
+    Schedules for changes in the minimum and maximum capacity of the service.
+    To learn more, check out the AWS documentation about scheduled autoscaling.
+    This also requires that the autoscaling variable is set.
+  EOF
+  type = object({
+    # The timezone could be a separate variable, but I think it is better to get
+    # everyone to explicitly set it to be aware of what timezone we're working with.
+    # Especially since we only operate in Norway, this is often going to be set to
+    # Europe/Oslo, which might have it's own downsides during DST.
+    #
+    # Setting this to Europe/Oslo implicitly might break some assumptions,
+    # and not setting it might also break some assumptions.
+    #
+    # Thus, we end up making everyone setting it explicilty
+    timezone  = string
+    schedules = list(object({
+      schedule     = string
+      min_capacity = string
+      max_capacity = string
+    }))
+  })
+  default = {
+    timezone = "Europe/Oslo"
+    schedules = []
+  }
+}
+
 variable "assign_public_ip" {
   description = "Assigned public IP to the container."
   type        = bool

@@ -277,3 +277,69 @@ resource "aws_ecs_service" "service" {
     }
   }
 }
+
+/*
+ * = Autoscaling
+ */
+locals {
+  # The Cluster ID is the cluster's ARN.
+  # The last part after a '/'is the name of the cluster.
+  cluster_name = split("/", var.cluster_id)[1]
+}
+
+resource "aws_appautoscaling_target" "ecs_service" {
+  count = var.autoscaling != null ? 1 : 0
+
+  resource_id        = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
+
+  service_namespace  = "ecs"
+  scalable_dimension = "ecs:service:DesiredCount"
+
+  min_capacity       = var.autoscaling.min_capacity
+  max_capacity       = var.autoscaling.max_capacity
+}
+
+resource "aws_appautoscaling_policy" "ecs_service" {
+  count = var.autoscaling != null ? 1 : 0
+
+  name               = "${var.name_prefix}-automatic-scaling"
+  # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = var.autoscaling.metric_type
+    }
+
+    target_value = var.autoscaling.target_value
+  }
+}
+
+# There is an issue with the AWS provider when it comes to creating multiple
+# autoscaling groups. This makes the creation of any n+1 scheduled action
+# fail on first create, which in turn requires multiple runs of apply.
+#
+# For more information, check out this issue on GitHub:
+# https://github.com/hashicorp/terraform-provider-aws/issues/17915
+resource "aws_appautoscaling_scheduled_action" "ecs_service" {
+  for_each = {
+    for v in var.autoscaling_schedule.schedules : v.schedule => v
+    if var.autoscaling != null
+  }
+
+  name               = "${var.name_prefix}-scheduled-scaling"
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
+
+  timezone = var.autoscaling_schedule.timezone
+  schedule = each.value.schedule
+
+  scalable_target_action {
+    min_capacity = each.value.min_capacity
+    max_capacity = each.value.max_capacity
+  }
+}

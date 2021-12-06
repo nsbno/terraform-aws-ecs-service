@@ -1,0 +1,8 @@
+= Autoscaling
+
+This example shows a simple service with autoscaling.
+
+The autoscaling will increase and decreases when the average CPU usage per service goes above 75%.
+
+The autoscaling is set to increase min and max capacity during weekdays,
+and decrease it during weekends.

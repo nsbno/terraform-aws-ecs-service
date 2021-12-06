@@ -25,6 +25,9 @@ The minimum usage of this module.
 link:examples/simple/[On Prem]::
 Run your service directly in an on-prem datacenter using ECS Anywhere.
 
+link:examples/autoscaling/[Autoscaling]::
+A simple service using autoscaling to handle increased load.
+
 == Arguments
 
 These are the arguments that can not be expressed by the terraform module

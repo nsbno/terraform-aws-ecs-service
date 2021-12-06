@@ -11,6 +11,7 @@ terraform-versions: &terraform-versions
 example-folders: &example-folders
   - examples/simple
   - examples/on-prem
+  - examples/autoscaling
 
 workflows:
   validate:
