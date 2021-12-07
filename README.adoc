@@ -22,7 +22,7 @@ These are the examples you can find there.
 link:examples/simple/[Simple]::
 The minimum usage of this module.
 
-link:examples/simple/[On Prem]::
+link:examples/on-prem/[On Prem]::
 Run your service directly in an on-prem datacenter using ECS Anywhere.
 
 link:examples/autoscaling/[Autoscaling]::
