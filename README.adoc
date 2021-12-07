@@ -130,3 +130,9 @@ Main things to note:
 
 * There is no VPC networking
 * No loadbalancers
+
+=== Migrating from `terraform-aws-ecs-fargate` and `terraform-aws-ecs-anywhere`
+
+A guide is available if you were previously using `terraform-aws-ecs-fargate` or `terraform-aws-ecs-anywhere`.
+
+Go check out link:docs/move-from-old-modules.adoc[the documentation about moving from old modules]!

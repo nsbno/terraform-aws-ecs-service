@@ -1,0 +1,95 @@
+= Moving from old modules
+
+If you previously used `terraform-aws-ecs-fargate`, this guide will show you how to migrate your resources.
+
+== Change your variables
+
+A major change from the previous module are the variables.
+
+For example, if this was your previous definition:
+
+[source, hcl-terraform]
+----
+module "task" {
+  source               = "github.com/nsbno/terraform-aws-ecs-fargate?ref=f1cd0ed"
+
+  name_prefix          = "${var.name_prefix}"
+
+  vpc_id               = local.shared_config.vpc_id
+  private_subnet_ids   = local.shared_config.private_subnet_ids
+  lb_arn               = local.shared_config.lb_arn
+  cluster_id           = local.shared_config.ecs_cluster_id
+
+  desired_count        = 1
+
+  task_container_image = "nginx:latest"
+  task_container_port  = 5000
+  task_container_environment = {
+    JAVA_OPTS   = "-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=75"
+  }
+  task_container_secrets = {
+    TOP_SECRET = data.aws_ssm_parameter.top_secret.arn,
+  }
+
+  health_check = {
+    path = "/health"
+  }
+
+  tags = var.tags
+}
+----
+
+You now have to change it to this:
+
+[source, hcl-terraform]
+----
+module "task" {
+  source               = "github.com/nsbno/terraform-aws-ecs-service?ref=x.y.z"
+  name_prefix          = "${var.name_prefix}"
+  vpc_id               = local.shared_config.vpc_id
+  private_subnet_ids   = local.shared_config.private_subnet_ids
+  cluster_id           = local.shared_config.ecs_cluster_id
+  desired_count        = 1
+
+  application_container = {
+    name        = "main"
+    image       = "nginx:latest"
+    port        = 80
+    protocol    = "HTTP"
+    environment = {
+      JAVA_OPTS   = "-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=75"
+    }
+    secrets = {
+      TOP_SECRET = data.aws_ssm_parameter.top_secret.arn,
+    }
+  }
+
+  lb_health_check = {
+    path = "/health"
+  }
+
+  tags = var.tags
+}
+----
+
+== Change references
+
+Now that the module is ready, you have to change some references.
+To do that, run the following commands:
+
+[source, bash]
+----
+terraform state mv \
+  module.app.module.task.aws_lb_target_group.task \
+  module.app.module.task.aws_lb_target_group.service[\"main\"]
+terraform state mv \
+  module.app.module.task.aws_iam_role_policy.log_agent \
+  module.app.module.task.aws_iam_role_policy.ecs_task_logs
+terraform state mv \
+  module.app.module.task.aws_security_group.ecs_service \
+  module.app.module.task.aws_security_group.ecs_service[0]
+terraform state mv \
+  module.app.module.task.aws_security_group_rule.egress_service \
+  module.app.module.task.aws_security_group_rule.egress_service[0]
+----
+
