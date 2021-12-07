@@ -1,0 +1,9 @@
+= Running services on-prem
+
+This example shows how to run a service on premises.
+
+A prerequisite for running with ECS Anywhere, is to already have an ECS Anywhere agent set up.
+To learn more about that, check out link:https://github.com/nsbno/terraform-aws-ecs-anywhere-instance[`terraform-aws-ecs-anywhere-instance`]!
+
+Please remember that ECS Anywhere limits networking and load-balancing posibilities.
+Check out link:https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-anywhere.html#ecs-anywhere-considerations[the AWS docs] to learn more about that.

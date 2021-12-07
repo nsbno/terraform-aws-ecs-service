@@ -10,6 +10,7 @@ terraform-versions: &terraform-versions
 
 example-folders: &example-folders
   - examples/simple
+  - examples/on-prem
 
 workflows:
   validate:
