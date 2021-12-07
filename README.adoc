@@ -119,6 +119,7 @@ You must make sure that the following arguments are present:
 
 * `lb_health_check`
 * `private_subnet_ids`
+* `vpc_id`
 
 ==== ECS Anywhere
 

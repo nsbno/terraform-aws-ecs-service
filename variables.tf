@@ -6,6 +6,7 @@ variable "name_prefix" {
 variable "vpc_id" {
   description = "The VPC ID."
   type        = string
+  default     = null
 }
 
 variable "cluster_id" {
