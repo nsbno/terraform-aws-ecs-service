@@ -81,6 +81,21 @@ Both use the same format, but `application_container` will automatically be set 
 |Container health checks. Not to be confused with LB health checks.
 |no
 |null
+
+|`cpu`
+|The number of CPU units reserved for this container.
+|no
+|null
+
+|`memory_hard_limit`
+|The max amount of memory that the specific container can consume.
+|no
+|null
+
+|`memory_soft_limit`
+|A soft memory limit, that ECS will do best effort to follow when memory is lacking for the service.
+|no
+|null
 |===
 
 

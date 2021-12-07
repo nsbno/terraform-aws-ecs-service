@@ -175,17 +175,20 @@ resource "aws_lb_target_group" "service" {
 locals {
   containers = [
     for container in concat([var.application_container], var.sidecar_containers) : {
-      name         = container.name
-      image        = container.image
-      command      = try(container.command, null)
+      name              = container.name
+      image             = container.image
+      command           = try(container.command, null)
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
-      essential    = try(container.essential, container.name == var.application_container.name)
-      environment  = try(container.environment, {})
-      secrets      = try(container.secrets, {})
-      port         = try(container.port, null)
-      protocol     = try(container.protocol, null)
-      health_check = try(container.health_check, null)
+      essential         = try(container.essential, container.name == var.application_container.name)
+      environment       = try(container.environment, {})
+      secrets           = try(container.secrets, {})
+      port              = try(container.port, null)
+      protocol          = try(container.protocol, null)
+      health_check      = try(container.health_check, null)
+      cpu               = try(container.cpu, null)
+      memory_hard_limit = try(container.memory_hard_limit, null)
+      memory_soft_limit = try(container.memory_soft_limit, null)
     }
   ]
 }
@@ -224,6 +227,9 @@ resource "aws_ecs_task_definition" "task" {
         }
       }
       healthCheck = container.health_check
+      cpu = container.cpu
+      memory = container.memory_hard_limit
+      memoryReservation = container.memory_soft_limit
     }
   ])
 
