@@ -5,7 +5,7 @@ output "service_id" {
 
 output "task_role_name" {
   description = "The name of the task role"
-  value       = aws_iam_role.task.arn
+  value       = aws_iam_role.task.name
 }
 
 output "task_role_arn" {
@@ -15,7 +15,7 @@ output "task_role_arn" {
 
 output "task_execution_role_name" {
   description = "The name of the task role"
-  value       = aws_iam_role.execution.arn
+  value       = aws_iam_role.execution.name
 }
 
 output "task_execution_role_arn" {
