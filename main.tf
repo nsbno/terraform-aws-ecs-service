@@ -106,7 +106,10 @@ resource "aws_security_group" "ecs_service" {
   vpc_id      = var.vpc_id
   name        = "${var.name_prefix}-ecs-service-sg"
   description = "Fargate service security group"
-  tags        = var.tags
+  tags        = merge(
+    var.tags,
+    { Name = "${var.name_prefix}-sg" }
+  )
 }
 
 resource "aws_security_group_rule" "egress_service" {
@@ -158,7 +161,10 @@ resource "aws_lb_target_group" "service" {
     create_before_destroy = true
   }
 
-  tags = var.tags
+  tags = merge(
+    var.tags,
+    { Name = "${var.name_prefix}-target-${var.application_container.port}-${each.key}" }
+  )
 }
 
 /*
