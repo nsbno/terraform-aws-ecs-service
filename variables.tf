@@ -55,7 +55,7 @@ variable "target_groups" {
 
 variable "lb_health_check" {
   description = "Health checks to verify that the container is running properly"
-  type = object({})
+  type = any
   default = null
 }
 

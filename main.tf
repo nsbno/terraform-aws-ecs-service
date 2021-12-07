@@ -142,15 +142,15 @@ resource "aws_lb_target_group" "service" {
     for_each = [var.lb_health_check]
 
     content {
-      enabled             = lookup(health_check, "enabled", null)
-      healthy_threshold   = lookup(health_check, "healthy_threshold", null)
-      interval            = lookup(health_check, "interval", null)
-      matcher             = lookup(health_check, "matcher", null)
-      path                = lookup(health_check, "path", null)
-      port                = lookup(health_check, "port", null)
-      protocol            = lookup(health_check, "protocol", null)
-      timeout             = lookup(health_check, "timeout", null)
-      unhealthy_threshold = lookup(health_check, "unhealthy_threshold", null)
+      enabled             = lookup(health_check.value, "enabled", null)
+      healthy_threshold   = lookup(health_check.value, "healthy_threshold", null)
+      interval            = lookup(health_check.value, "interval", null)
+      matcher             = lookup(health_check.value, "matcher", null)
+      path                = lookup(health_check.value, "path", null)
+      port                = lookup(health_check.value, "port", null)
+      protocol            = lookup(health_check.value, "protocol", null)
+      timeout             = lookup(health_check.value, "timeout", null)
+      unhealthy_threshold = lookup(health_check.value, "unhealthy_threshold", null)
     }
   }
 
