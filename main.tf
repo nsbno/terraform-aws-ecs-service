@@ -189,6 +189,14 @@ locals {
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
+      log_configuration = try(container.log_configuration, {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group" : aws_cloudwatch_log_group.main.name,
+          "awslogs-region" : data.aws_region.current.name,
+          "awslogs-stream-prefix" : container.name
+        }
+      })
     }
   ]
 }
@@ -218,14 +226,7 @@ resource "aws_ecs_task_definition" "task" {
         hostPort = tonumber(container.port)
         protocol = "tcp"
       }]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group" : aws_cloudwatch_log_group.main.name,
-          "awslogs-region" : data.aws_region.current.name,
-          "awslogs-stream-prefix" : "container"
-        }
-      }
+      logConfiguration = container.log_configuration
       healthCheck = container.health_check
       cpu = container.cpu
       memory = container.memory_hard_limit

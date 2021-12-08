@@ -101,6 +101,11 @@ Both use the same format, but `application_container` will automatically be set 
 |A soft memory limit, that ECS will do best effort to follow when memory is lacking for the service.
 |no
 |null
+
+|`log_configuration`
+|Configure how the container will log
+|no
+|An automatic CloudWatch configuration where the container name is the stream prefix
 |===
 
 
