@@ -102,10 +102,10 @@ Both use the same format, but `application_container` will automatically be set 
 |no
 |null
 
-|`log_configuration`
-|Configure how the container will log
+|`extra_options`
+|Configure any other options for container definitions
 |no
-|An automatic CloudWatch configuration where the container name is the stream prefix
+|None (Though log_configuration is automatically configured for CloudWatch)
 |===
 
 

@@ -189,14 +189,7 @@ locals {
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
-      log_configuration = try(container.log_configuration, {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group" : aws_cloudwatch_log_group.main.name,
-          "awslogs-region" : data.aws_region.current.name,
-          "awslogs-stream-prefix" : container.name
-        }
-      })
+      extra_options     = try(container.extra_options, {})
     }
   ]
 }
@@ -206,7 +199,7 @@ data "aws_region" "current" {}
 resource "aws_ecs_task_definition" "task" {
   family                = var.name_prefix
   container_definitions = jsonencode([
-    for container in local.containers : {
+    for container in local.containers : merge({
       name = container.name
       image = container.image
       command = container.command
@@ -226,12 +219,19 @@ resource "aws_ecs_task_definition" "task" {
         hostPort = tonumber(container.port)
         protocol = "tcp"
       }]
-      logConfiguration = container.log_configuration
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group" : aws_cloudwatch_log_group.main.name,
+          "awslogs-region" : data.aws_region.current.name,
+          "awslogs-stream-prefix" : container.name
+        }
+      }
       healthCheck = container.health_check
       cpu = container.cpu
       memory = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
-    }
+    }, container.extra_options)
   ])
 
   execution_role_arn = aws_iam_role.execution.arn
