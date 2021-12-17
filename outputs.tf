@@ -25,7 +25,7 @@ output "task_execution_role_arn" {
 
 output "security_group_id" {
   description = "The ID of the service's security group"
-  value       = aws_security_group.ecs_service[0].id
+  value       = length(aws_security_group.ecs_service) > 0 ? aws_security_group.ecs_service[0].id : 0
 }
 
 output "log_group_arn" {

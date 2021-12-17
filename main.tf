@@ -252,7 +252,7 @@ resource "aws_ecs_service" "service" {
   launch_type                        = var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
-  health_check_grace_period_seconds  = var.health_check_grace_period_seconds
+  health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
   wait_for_steady_state              = var.wait_for_steady_state
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
