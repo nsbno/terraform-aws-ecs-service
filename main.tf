@@ -125,10 +125,12 @@ resource "aws_security_group_rule" "egress_service" {
 }
 
 /*
- * == Loadbalancer
+ * == Load Balancer
+ *
+ * Setup load balancing with an existing loadbalancer.
  */
 resource "aws_lb_target_group" "service" {
-  for_each = var.launch_type == "EXTERNAL" ? [] : var.target_groups
+  for_each = {for idx, value in var.lb_listeners : idx => value}
 
   vpc_id = var.vpc_id
 
@@ -136,7 +138,7 @@ resource "aws_lb_target_group" "service" {
   port        = var.application_container.port
   protocol    = var.application_container.protocol
 
-  deregistration_delay = var.task_deregistration_delay
+  deregistration_delay = var.lb_deregistration_delay
 
   dynamic "health_check" {
     for_each = [var.lb_health_check]
@@ -165,6 +167,35 @@ resource "aws_lb_target_group" "service" {
     var.tags,
     { Name = "${var.name_prefix}-target-${var.application_container.port}-${each.key}" }
   )
+}
+
+resource "aws_lb_listener_rule" "service" {
+  for_each = {for idx, value in var.lb_listeners : idx => value}
+
+  listener_arn = each.value.listener_arn
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.service[each.key].arn
+  }
+
+  condition {
+    path_pattern {
+      values = [each.value.path_pattern]
+    }
+  }
+}
+
+resource "aws_security_group_rule" "load_balancer" {
+  for_each = {for idx, value in var.lb_listeners : idx => value}
+
+  security_group_id        = aws_security_group.ecs_service[0].id
+
+  type                     = "ingress"
+  protocol                 = "tcp"
+  from_port                = var.application_container.port
+  to_port                  = var.application_container.port
+  source_security_group_id = each.value.security_group_id
 }
 
 /*
@@ -269,7 +300,7 @@ resource "aws_ecs_service" "service" {
   }
 
   dynamic "load_balancer" {
-    for_each = var.launch_type == "EXTERNAL" ? [] : var.target_groups
+    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
 
     content {
       container_name   = var.application_container.name

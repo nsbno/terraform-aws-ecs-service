@@ -48,10 +48,21 @@ variable "memory" {
   default = 512
 }
 
-variable "target_groups" {
-  description = "Number of target groups to create"
-  type = set(string)
-  default = ["main"]
+variable "lb_listeners" {
+  description = "Configuration for load balancing"
+  type = list(object({
+    listener_arn = string
+    security_group_id = string
+
+    path_pattern = string
+  }))
+  default = []
+}
+
+variable "lb_deregistration_delay" {
+  description = "The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused."
+  type        = number
+  default     = null
 }
 
 variable "lb_health_check" {
@@ -158,10 +169,4 @@ variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
   default     = false
-}
-
-variable "task_deregistration_delay" {
-  description = "The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused."
-  type        = number
-  default     = null
 }

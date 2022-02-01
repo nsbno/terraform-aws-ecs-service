@@ -52,24 +52,15 @@ module "service" {
   cluster_id               = data.aws_ecs_cluster.main.id
 
   application_container = {
-    name = "main"
-    image = "nginx:latest"
-    port = 80
+    name     = "main"
+    image    = "nginx:latest"
+    port     = 80
     protocol = "HTTP"
   }
-}
 
-resource "aws_lb_listener_rule" "nginx" {
-  listener_arn = data.aws_lb_listener.http.arn
-
-  action {
-    type = "forward"
-    target_group_arn = module.service.target_group_arns["main"]
-  }
-
-  condition {
-    path_pattern {
-      values = ["*"]
-    }
-  }
+  lb_listeners = [{
+    listener_arn      = data.aws_lb_listener.http.arn
+    security_group_id = one(data.aws_lb.main.security_groups)
+    path_pattern      = "/${local.application_name}/*"
+  }]
 }

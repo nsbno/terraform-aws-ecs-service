@@ -58,6 +58,12 @@ module "service" {
     protocol = "HTTP"
   }
 
+  lb_listeners = [{
+    listener_arn      = data.aws_lb_listener.http.arn
+    security_group_id = one(data.aws_lb.main.security_groups)
+    path_pattern      = "/${local.application_name}/*"
+  }]
+
   autoscaling = {
     min_capacity = 1
     max_capacity = 3
@@ -80,20 +86,5 @@ module "service" {
         max_capacity = 3
       }
     ]
-  }
-}
-
-resource "aws_lb_listener_rule" "nginx" {
-  listener_arn = data.aws_lb_listener.http.arn
-
-  action {
-    type             = "forward"
-    target_group_arn = module.service.target_group_arns["main"]
-  }
-
-  condition {
-    path_pattern {
-      values = ["*"]
-    }
   }
 }
