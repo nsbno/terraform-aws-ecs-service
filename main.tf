@@ -200,18 +200,6 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
-resource "aws_security_group_rule" "load_balancer" {
-  for_each = {for idx, value in var.lb_listeners : idx => value}
-
-  security_group_id        = aws_security_group.ecs_service[0].id
-
-  type                     = "ingress"
-  protocol                 = "tcp"
-  from_port                = var.application_container.port
-  to_port                  = var.application_container.port
-  source_security_group_id = each.value.security_group_id
-}
-
 /*
  * = ECS Service
  *
