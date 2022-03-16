@@ -3,6 +3,11 @@ output "service_id" {
   value       = aws_ecs_service.service.id
 }
 
+output "service_name" {
+  description = "The name of the created service"
+  value       = aws_ecs_service.service.name
+}
+
 output "task_role_name" {
   description = "The name of the task role"
   value       = aws_iam_role.task.name
