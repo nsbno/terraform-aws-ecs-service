@@ -277,6 +277,10 @@ resource "aws_ecs_service" "service" {
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
     }
   }
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 }
 
 /*
@@ -286,36 +290,38 @@ locals {
   # The Cluster ID is the cluster's ARN.
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
+  autoscaling = var.autoscaling != null ? var.autoscaling : {
+    min_capacity = var.desired_count
+    max_capacity = var.desired_count
+    metric_type  = "ECSServiceAverageCPUUtilization"
+    target_value = "75"
+  }
 }
 
 resource "aws_appautoscaling_target" "ecs_service" {
-  count = var.autoscaling != null ? 1 : 0
-
   resource_id        = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
 
   service_namespace  = "ecs"
   scalable_dimension = "ecs:service:DesiredCount"
 
-  min_capacity       = var.autoscaling.min_capacity
-  max_capacity       = var.autoscaling.max_capacity
+  min_capacity       = local.autoscaling.min_capacity
+  max_capacity       = local.autoscaling.max_capacity
 }
 
 resource "aws_appautoscaling_policy" "ecs_service" {
-  count = var.autoscaling != null ? 1 : 0
-
   name               = "${var.name_prefix}-automatic-scaling"
   # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
 
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
-      predefined_metric_type = var.autoscaling.metric_type
+      predefined_metric_type = local.autoscaling.metric_type
     }
 
-    target_value = var.autoscaling.target_value
+    target_value = local.autoscaling.target_value
   }
 }
 
@@ -332,9 +338,9 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
   }
 
   name               = "${var.name_prefix}-scheduled-scaling"
-  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
 
   timezone = var.autoscaling_schedule.timezone
   schedule = each.value.schedule
