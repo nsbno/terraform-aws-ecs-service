@@ -16,13 +16,13 @@ variable "cluster_id" {
 
 variable "application_container" {
   description = "The application that is being run by the service"
-  type = any
+  type        = any
 }
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
-  type = any
-  default = []
+  type        = any
+  default     = []
 }
 
 variable "launch_type" {
@@ -31,27 +31,27 @@ variable "launch_type" {
   default     = "FARGATE"
 
   validation {
-    condition = contains(["EC2", "FARGATE", "EXTERNAL"], var.launch_type)
+    condition     = contains(["EC2", "FARGATE", "EXTERNAL"], var.launch_type)
     error_message = "The launch_type must be either \"EC2\", \"FARGATE\" or \"EXTERNAL\"."
   }
 }
 
 variable "cpu" {
   description = "The amount of cores that are required for the service"
-  type = number
-  default = 256
+  type        = number
+  default     = 256
 }
 
 variable "memory" {
   description = "The amount of memory that is required for the service"
-  type = number
-  default = 512
+  type        = number
+  default     = 512
 }
 
 variable "lb_listeners" {
   description = "Configuration for load balancing"
   type = list(object({
-    listener_arn = string
+    listener_arn      = string
     security_group_id = string
 
     path_pattern = string
@@ -67,8 +67,8 @@ variable "lb_deregistration_delay" {
 
 variable "lb_health_check" {
   description = "Health checks to verify that the container is running properly"
-  type = any
-  default = null
+  type        = any
+  default     = null
 }
 
 variable "private_subnet_ids" {
@@ -94,6 +94,12 @@ variable "autoscaling" {
   default = null
 }
 
+variable "autoscaling_resource_label" {
+  description = "Must be set if autoscaling metric type is ALBRequestCountPerTarget. Value must be equal to lb.arn_suffix/target_group.arn_suffix. Example: app/lb-name/lb-id/targetgroup/targetgroup-name/target-group-id"
+  type        = string
+  default     = ""
+}
+
 variable "autoscaling_schedule" {
   description = <<-EOF
     Schedules for changes in the minimum and maximum capacity of the service.
@@ -110,7 +116,7 @@ variable "autoscaling_schedule" {
     # and not setting it might also break some assumptions.
     #
     # Thus, we end up making everyone setting it explicilty
-    timezone  = string
+    timezone = string
     schedules = list(object({
       schedule     = string
       min_capacity = string
@@ -118,7 +124,7 @@ variable "autoscaling_schedule" {
     }))
   })
   default = {
-    timezone = "Europe/Oslo"
+    timezone  = "Europe/Oslo"
     schedules = []
   }
 }
