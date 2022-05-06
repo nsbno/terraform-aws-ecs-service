@@ -106,7 +106,7 @@ resource "aws_security_group" "ecs_service" {
   vpc_id      = var.vpc_id
   name        = "${var.name_prefix}-ecs-service-sg"
   description = "Fargate service security group"
-  tags        = merge(
+  tags = merge(
     var.tags,
     { Name = "${var.name_prefix}-sg" }
   )
@@ -162,7 +162,7 @@ resource "aws_security_group_rule" "egress_service" {
  * Setup load balancing with an existing loadbalancer.
  */
 resource "aws_lb_target_group" "service" {
-  for_each = {for idx, value in var.lb_listeners : idx => value}
+  for_each = { for idx, value in var.lb_listeners : idx => value }
 
   vpc_id = var.vpc_id
 
@@ -202,7 +202,7 @@ resource "aws_lb_target_group" "service" {
 }
 
 resource "aws_lb_listener_rule" "service" {
-  for_each = {for idx, value in var.lb_listeners : idx => value}
+  for_each = { for idx, value in var.lb_listeners : idx => value }
 
   listener_arn = each.value.listener_arn
 
@@ -226,9 +226,9 @@ resource "aws_lb_listener_rule" "service" {
 locals {
   containers = [
     for container in concat([var.application_container], var.sidecar_containers) : {
-      name              = container.name
-      image             = container.image
-      command           = try(container.command, null)
+      name    = container.name
+      image   = container.image
+      command = try(container.command, null)
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential         = try(container.essential, container.name == var.application_container.name)
@@ -248,27 +248,27 @@ locals {
 data "aws_region" "current" {}
 
 resource "aws_ecs_task_definition" "task" {
-  family                = var.name_prefix
+  family = var.name_prefix
   container_definitions = jsonencode([
     for container in local.containers : merge({
-      name = container.name
-      image = container.image
+      name    = container.name
+      image   = container.image
       command = container.command
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
       environment = [for key, value in container.environment : {
-        name = key
+        name  = key
         value = value
       }]
       secrets = [for key, value in container.secrets : {
-        name = key
+        name      = key
         valueFrom = value
       }]
       portMappings = [container.port == null ? null : {
         containerPort = tonumber(container.port)
-        hostPort = tonumber(container.port)
-        protocol = "tcp"
+        hostPort      = tonumber(container.port)
+        protocol      = "tcp"
       }]
       logConfiguration = {
         logDriver = "awslogs"
@@ -278,9 +278,9 @@ resource "aws_ecs_task_definition" "task" {
           "awslogs-stream-prefix" : container.name
         }
       }
-      healthCheck = container.health_check
-      cpu = container.cpu
-      memory = container.memory_hard_limit
+      healthCheck       = container.health_check
+      cpu               = container.cpu
+      memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
     }, container.extra_options)
   ])
@@ -292,7 +292,7 @@ resource "aws_ecs_task_definition" "task" {
   cpu                      = var.cpu
   memory                   = var.memory
   # ECS Anywhere can't have "awsvpc" as the network mode
-  network_mode             = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+  network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
 
 resource "aws_ecs_service" "service" {
@@ -342,25 +342,25 @@ locals {
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
   autoscaling = var.autoscaling != null ? var.autoscaling : {
-    min_capacity = var.desired_count
-    max_capacity = var.desired_count
-    metric_type  = "ECSServiceAverageCPUUtilization"
-    target_value = "75"
+    min_capacity   = var.desired_count
+    max_capacity   = var.desired_count
+    metric_type    = "ECSServiceAverageCPUUtilization"
+    target_value   = "75"
   }
 }
 
 resource "aws_appautoscaling_target" "ecs_service" {
-  resource_id        = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
+  resource_id = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
 
   service_namespace  = "ecs"
   scalable_dimension = "ecs:service:DesiredCount"
 
-  min_capacity       = local.autoscaling.min_capacity
-  max_capacity       = local.autoscaling.max_capacity
+  min_capacity = local.autoscaling.min_capacity
+  max_capacity = local.autoscaling.max_capacity
 }
 
 resource "aws_appautoscaling_policy" "ecs_service" {
-  name               = "${var.name_prefix}-automatic-scaling"
+  name = "${var.name_prefix}-automatic-scaling"
   # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
@@ -370,6 +370,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = local.autoscaling.metric_type
+      resource_label         = var.autoscaling_resource_label
     }
 
     target_value = local.autoscaling.target_value
