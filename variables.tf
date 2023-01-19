@@ -176,3 +176,9 @@ variable "wait_for_steady_state" {
   type        = bool
   default     = false
 }
+
+variable "xray_daemon" {
+  description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
+  type        = bool
+  default     = false
+}

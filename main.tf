@@ -91,6 +91,37 @@ data "aws_iam_policy_document" "ecs_task_logs" {
   }
 }
 
+resource "aws_iam_role_policy" "xray_daemon" {
+  count = var.xray_daemon ? 1 : 0
+
+  role       = aws_iam_role.task.id
+  policy     = data.aws_iam_policy_document.xray_daemon.json
+}
+
+data "aws_iam_policy_document" "xray_daemon" {
+  statement {
+    effect    = "Allow"
+    resources = ["*"]
+    actions   = [
+      "logs:PutLogEvents",
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
+      "logs:DescribeLogGroups",
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords",
+      "xray:GetSamplingRules",
+      "xray:GetSamplingTargets",
+      "xray:GetSamplingStatisticSummaries",
+      "cloudwatch:PutMetricData",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeTags",
+      "ssm:GetParameters"
+    ]
+  }
+}
+
+
 /*
  * = Networking
  *
@@ -224,8 +255,15 @@ resource "aws_lb_listener_rule" "service" {
  * This is what users are here for
  */
 locals {
+  xray_container = var.xray_daemon == true ? [{
+    name              = "aws-otel-collector",
+    image             = "amazon/aws-otel-collector",
+    command           = ["--config=/etc/ecs/ecs-default-config.yaml"]
+    essential         = true
+  }] : []
+
   containers = [
-    for container in concat([var.application_container], var.sidecar_containers) : {
+    for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)
@@ -235,7 +273,7 @@ locals {
       environment       = try(container.environment, {})
       secrets           = try(container.secrets, {})
       port              = try(container.port, null)
-      protocol          = try(container.protocol, null)
+      protocol          = try(container.protocol, "tcp")
       health_check      = try(container.health_check, null)
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
@@ -268,7 +306,7 @@ resource "aws_ecs_task_definition" "task" {
       portMappings = [container.port == null ? null : {
         containerPort = tonumber(container.port)
         hostPort      = tonumber(container.port)
-        protocol      = "tcp"
+        protocol      = container.protocol
       }]
       logConfiguration = {
         logDriver = "awslogs"
