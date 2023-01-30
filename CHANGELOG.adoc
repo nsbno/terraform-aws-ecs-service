@@ -4,7 +4,8 @@
 
 === Breaking Changes
 
-Changed `lb_listener.path_parameter` to `lb_listener.conditions`.
+* Require `terraform >= v1.3.0`
+* Changed `lb_listener.path_parameter` to `lb_listener.conditions`.
 
 To update, chang your configuration from:
 
