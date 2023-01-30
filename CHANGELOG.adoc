@@ -33,3 +33,4 @@ lb_listeners = [{
 == New Features
 
 * Add ability to have multiple conditions for your load balancer listeners.
+* Add ability to use `host_header` as a lb listener condition

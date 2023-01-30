@@ -55,7 +55,8 @@ variable "lb_listeners" {
     security_group_id = string
 
     conditions = list(object({
-      path_pattern = string
+      path_pattern = optional(string)
+      host_header  = optional(string)
     }))
   }))
   default = []
