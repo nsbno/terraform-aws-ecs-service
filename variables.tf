@@ -54,7 +54,9 @@ variable "lb_listeners" {
     listener_arn      = string
     security_group_id = string
 
-    path_pattern = string
+    conditions = list(object({
+      path_pattern = string
+    }))
   }))
   default = []
 }
@@ -68,7 +70,7 @@ variable "lb_deregistration_delay" {
 variable "lb_health_check" {
   description = "Health checks to verify that the container is running properly"
   type        = any
-  default     = null
+  default     = {}
 }
 
 variable "private_subnet_ids" {

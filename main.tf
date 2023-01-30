@@ -242,9 +242,13 @@ resource "aws_lb_listener_rule" "service" {
     target_group_arn = aws_lb_target_group.service[each.key].arn
   }
 
-  condition {
-    path_pattern {
-      values = [each.value.path_pattern]
+  dynamic "condition" {
+    for_each = each.value.conditions
+
+    content {
+      path_pattern {
+        values = [condition.value.path_pattern]
+      }
     }
   }
 }

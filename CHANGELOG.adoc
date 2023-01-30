@@ -1,0 +1,35 @@
+= Changelog
+
+== 0.8.0
+
+=== Breaking Changes
+
+Changed `lb_listener.path_parameter` to `lb_listener.conditions`.
+
+To update, chang your configuration from:
+
+[source,terraform]
+----
+lb_listeners = [{
+  listener_arn      = data.aws_lb_listener.http.arn
+  security_group_id = one(data.aws_lb.main.security_groups)
+  path_pattern = "/${local.application_name}/*"
+}]
+----
+
+To this:
+
+[source, terraform]
+----
+lb_listeners = [{
+  listener_arn      = data.aws_lb_listener.http.arn
+  security_group_id = one(data.aws_lb.main.security_groups)
+  conditions = [{
+    path_pattern = "/${local.application_name}/*"
+  }]
+}]
+----
+
+== New Features
+
+* Add ability to have multiple conditions for your load balancer listeners.

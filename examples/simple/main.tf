@@ -61,6 +61,8 @@ module "service" {
   lb_listeners = [{
     listener_arn      = data.aws_lb_listener.http.arn
     security_group_id = one(data.aws_lb.main.security_groups)
-    path_pattern      = "/${local.application_name}/*"
+    conditions = [{
+      path_pattern = "/${local.application_name}/*"
+    }]
   }]
 }
