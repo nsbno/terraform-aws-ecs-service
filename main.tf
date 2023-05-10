@@ -94,15 +94,15 @@ data "aws_iam_policy_document" "ecs_task_logs" {
 resource "aws_iam_role_policy" "xray_daemon" {
   count = var.xray_daemon ? 1 : 0
 
-  role       = aws_iam_role.task.id
-  policy     = data.aws_iam_policy_document.xray_daemon.json
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.xray_daemon.json
 }
 
 data "aws_iam_policy_document" "xray_daemon" {
   statement {
     effect    = "Allow"
     resources = ["*"]
-    actions   = [
+    actions = [
       "logs:PutLogEvents",
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
@@ -269,10 +269,10 @@ resource "aws_lb_listener_rule" "service" {
  */
 locals {
   xray_container = var.xray_daemon == true ? [{
-    name              = "aws-otel-collector",
-    image             = "amazon/aws-otel-collector",
-    command           = ["--config=/etc/ecs/ecs-default-config.yaml"]
-    essential         = true
+    name      = "aws-otel-collector",
+    image     = "amazon/aws-otel-collector",
+    command   = ["--config=/etc/ecs/ecs-default-config.yaml"]
+    essential = true
   }] : []
 
   containers = [
@@ -356,6 +356,7 @@ resource "aws_ecs_service" "service" {
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
   wait_for_steady_state              = var.wait_for_steady_state
+  propagate_tags                     = var.propagate_tags
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
@@ -393,10 +394,10 @@ locals {
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
   autoscaling = var.autoscaling != null ? var.autoscaling : {
-    min_capacity   = var.desired_count
-    max_capacity   = var.desired_count
-    metric_type    = "ECSServiceAverageCPUUtilization"
-    target_value   = "75"
+    min_capacity = var.desired_count
+    max_capacity = var.desired_count
+    metric_type  = "ECSServiceAverageCPUUtilization"
+    target_value = "75"
   }
 }
 
