@@ -156,6 +156,12 @@ variable "tags" {
   default     = {}
 }
 
+variable "propagate_tags" {
+  description = "Whether to propagate tags from the service or the task definition to the tasks. Valid values are SERVICE or TASK_DEFINITION"
+  type        = string
+  default     = ""
+}
+
 variable "deployment_minimum_healthy_percent" {
   default     = 50
   type        = number
