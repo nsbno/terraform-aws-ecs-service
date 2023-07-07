@@ -271,7 +271,7 @@ locals {
   xray_container = var.xray_daemon == true ? [{
     name      = "aws-otel-collector",
     image     = "amazon/aws-otel-collector",
-    command   = ["--config=/etc/ecs/ecs-default-config.yaml"]
+    command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
     essential = true
   }] : []
 
