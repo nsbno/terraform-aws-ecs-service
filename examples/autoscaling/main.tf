@@ -17,8 +17,11 @@ data "aws_vpc" "main" {
   }
 }
 
-data "aws_subnet_ids" "private" {
-  vpc_id = data.aws_vpc.main.id
+data "aws_subnets" "private" {
+  filter {
+    name = "vpc-id"
+    values = [data.aws_vpc.main.id]
+  }
 
   tags = {
     Tier = "Private"
@@ -48,7 +51,7 @@ module "service" {
   name_prefix = local.application_name
 
   vpc_id             = data.aws_vpc.main.id
-  private_subnet_ids = data.aws_subnet_ids.private.ids
+  private_subnet_ids = data.aws_subnets.private.ids
   cluster_id         = data.aws_ecs_cluster.main.id
 
   application_container = {
