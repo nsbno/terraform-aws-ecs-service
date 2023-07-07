@@ -195,5 +195,5 @@ variable "xray_daemon" {
 variable "xray_daemon_config_path" {
   description = "The config file to use for the X-Ray exporter sidecar. Should be one of the files found here: https://github.com/aws-observability/aws-otel-collector/tree/main/config/ecs."
   type = string
-  default = "ecs-default-config.yaml"
+  default = "ecs-xray.yaml"
 }
