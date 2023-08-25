@@ -1,5 +1,12 @@
 = Changelog
 
+== 0.11.0
+* Add variable for enabling `aws ecs exec` from AWS CLI.
+* Rename `name_prefix` to `application_name`.
+
+=== Breaking Changes
+* Rename `name_prefix` to `application_name`.
+
 == 0.8.0
 
 === Breaking Changes

@@ -1,5 +1,5 @@
-variable "name_prefix" {
-  description = "A prefix used for naming resources."
+variable "application_name" {
+  description = "Name of service. Used to prefix the name of resources."
   type        = string
 }
 
@@ -164,6 +164,12 @@ variable "propagate_tags" {
   description = "Whether to propagate tags from the service or the task definition to the tasks. Valid values are SERVICE, TASK_DEFINITION or NONE"
   type        = string
   default     = "SERVICE"
+}
+
+variable "enable_execute_command" {
+  description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
+  type        = bool
+  default     = false
 }
 
 variable "deployment_minimum_healthy_percent" {
