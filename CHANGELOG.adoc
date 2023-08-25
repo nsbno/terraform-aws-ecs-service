@@ -1,6 +1,6 @@
 = Changelog
 
-== 0.11.0
+== 0.12.0
 * Add variable for enabling `aws ecs exec` from AWS CLI.
 * Rename `name_prefix` to `application_name`.
 
