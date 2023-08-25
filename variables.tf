@@ -166,6 +166,12 @@ variable "propagate_tags" {
   default     = "SERVICE"
 }
 
+variable "enable_execute_command" {
+  description = "Specifies whether to enable Amazon ECS Exec for the tasks within the service."
+  type        = bool
+  default     = false
+}
+
 variable "deployment_minimum_healthy_percent" {
   default     = 50
   type        = number
