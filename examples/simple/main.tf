@@ -48,7 +48,7 @@ data "aws_lb_listener" "http" {
 module "service" {
   source = "../../"
 
-  name_prefix = local.application_name
+  application_name = local.application_name
 
   vpc_id                   = data.aws_vpc.main.id
   private_subnet_ids       = data.aws_subnets.private.ids

@@ -22,7 +22,7 @@ data "aws_ecs_cluster" "main" {
 module "service" {
   source = "../../"
 
-  name_prefix = local.application_name
+  application_name = local.application_name
 
   cluster_id = data.aws_ecs_cluster.main.id
 
