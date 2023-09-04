@@ -1,5 +1,35 @@
 = Changelog
 
+== 0.13.0
+
+This update fixes an issue with `desired_count` for services without autoscaling.
+
+=== Breaking Changes
+
+You will need to add a `moved` block to your configuration to avoid recreating your service.
+
+If you are using `desired_count`, add the following next to your module block:
+
+[source, hcl]
+----
+moved = {
+  from = module.ecs_service.aws_ecs_service.service
+  from = module.ecs_service.aws_ecs_service.service[0]
+}
+----
+
+If you are using `autoscaling`, add the following next to your module block:
+
+[source, hcl]
+----
+moved = {
+  from = module.ecs_service.aws_ecs_service.service
+  from = module.ecs_service.aws_ecs_service.service_with_autoscaling[0]
+}
+----
+
+This block can be deleted after apply.
+
 == 0.12.0
 * Add variable for enabling `aws ecs exec` from AWS CLI.
 * Rename `name_prefix` to `application_name`.
