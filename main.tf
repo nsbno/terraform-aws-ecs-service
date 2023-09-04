@@ -353,7 +353,55 @@ resource "aws_ecs_task_definition" "task" {
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
 
+
+# When autoscaling is enabled, we have to ignore changes to the desired count.
+# This is because the autoscaling group will manage the desired count.
+# If terraform apply is run, then the desired count will be reset.
+#
+# Having two resources allows us to have some users with autoscaling and some
+# using desired count.
+
 resource "aws_ecs_service" "service" {
+  count = var.autoscaling == null ? 1 : 0
+
+  name                               = var.name_prefix
+  cluster                            = var.cluster_id
+  task_definition                    = aws_ecs_task_definition.task.arn
+  desired_count                      = var.desired_count
+  launch_type                        = var.launch_type
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
+  deployment_maximum_percent         = var.deployment_maximum_percent
+  health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
+  wait_for_steady_state              = var.wait_for_steady_state
+  propagate_tags                     = var.propagate_tags
+
+  # ECS Anywhere doesn't support VPC networking or load balancers.
+  # Because of this, we need to make these resources dynamic!
+
+  dynamic "network_configuration" {
+    for_each = var.launch_type == "EXTERNAL" ? [] : [0]
+
+    content {
+      subnets          = var.private_subnet_ids
+      security_groups  = [aws_security_group.ecs_service[0].id]
+      assign_public_ip = var.assign_public_ip
+    }
+  }
+
+  dynamic "load_balancer" {
+    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
+
+    content {
+      container_name   = var.application_container.name
+      container_port   = var.application_container.port
+      target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
+    }
+  }
+}
+
+resource "aws_ecs_service" "service_with_autoscaling" {
+  count = var.autoscaling != null ? 1 : 0
+
   name                               = var.application_name
   cluster                            = var.cluster_id
   task_definition                    = aws_ecs_task_definition.task.arn
