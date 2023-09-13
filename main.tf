@@ -293,7 +293,7 @@ locals {
       environment       = try(container.environment, {})
       secrets           = try(container.secrets, {})
       port              = try(container.port, null)
-      protocol          = try(container.protocol, "tcp")
+      network_protocol  = try(container.network_protocol, "tcp")
       health_check      = try(container.health_check, null)
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
@@ -326,7 +326,7 @@ resource "aws_ecs_task_definition" "task" {
       portMappings = [container.port == null ? null : {
         containerPort = tonumber(container.port)
         hostPort      = tonumber(container.port)
-        protocol      = container.protocol
+        protocol      = container.network_protocol
       }]
       logConfiguration = {
         logDriver = "awslogs"
