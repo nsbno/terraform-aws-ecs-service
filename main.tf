@@ -357,6 +357,16 @@ resource "aws_ecs_task_definition" "task" {
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
 
+# Service preconditions to ensure that the user doesn't try combinations we want to avoid.
+resource "terraform_data" "no_launch_type_and_spot" {
+  lifecycle {
+    precondition {
+      condition     = !var.use_spot || var.launch_type == "FARGATE"
+      error_message = "use_spot and launch_type are mutually exclusive"
+    }
+  }
+}
+
 
 # When autoscaling is enabled, we have to ignore changes to the desired count.
 # This is because the autoscaling group will manage the desired count.
@@ -366,7 +376,8 @@ resource "aws_ecs_task_definition" "task" {
 # using desired count.
 
 resource "aws_ecs_service" "service" {
-  count = var.autoscaling == null ? 1 : 0
+  count      = var.autoscaling == null ? 1 : 0
+  depends_on = [terraform_data.no_launch_type_and_spot]
 
   name                               = var.application_name
   cluster                            = var.cluster_id
@@ -414,7 +425,8 @@ resource "aws_ecs_service" "service" {
 }
 
 resource "aws_ecs_service" "service_with_autoscaling" {
-  count = var.autoscaling != null ? 1 : 0
+  count      = var.autoscaling != null ? 1 : 0
+  depends_on = [terraform_data.no_launch_type_and_spot]
 
   name                               = var.application_name
   cluster                            = var.cluster_id
