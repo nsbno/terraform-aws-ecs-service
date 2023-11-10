@@ -301,6 +301,10 @@ locals {
       extra_options     = try(container.extra_options, {})
     }
   ]
+  capacity_provider_strategy = {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
 }
 
 data "aws_region" "current" {}
@@ -353,6 +357,16 @@ resource "aws_ecs_task_definition" "task" {
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
 
+# Service preconditions to ensure that the user doesn't try combinations we want to avoid.
+resource "terraform_data" "no_launch_type_and_spot" {
+  lifecycle {
+    precondition {
+      condition     = !var.use_spot || var.launch_type == "FARGATE"
+      error_message = "use_spot and launch_type are mutually exclusive"
+    }
+  }
+}
+
 
 # When autoscaling is enabled, we have to ignore changes to the desired count.
 # This is because the autoscaling group will manage the desired count.
@@ -362,13 +376,14 @@ resource "aws_ecs_task_definition" "task" {
 # using desired count.
 
 resource "aws_ecs_service" "service" {
-  count = var.autoscaling == null ? 1 : 0
+  count      = var.autoscaling == null ? 1 : 0
+  depends_on = [terraform_data.no_launch_type_and_spot]
 
   name                               = var.application_name
   cluster                            = var.cluster_id
   task_definition                    = aws_ecs_task_definition.task.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.launch_type
+  launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
@@ -377,7 +392,6 @@ resource "aws_ecs_service" "service" {
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
-
   dynamic "network_configuration" {
     for_each = var.launch_type == "EXTERNAL" ? [] : [0]
 
@@ -397,16 +411,28 @@ resource "aws_ecs_service" "service" {
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
     }
   }
+
+  # We set the service as a spot service through setting up the capacity_provider_strategy. 
+  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
+  dynamic "capacity_provider_strategy" {
+    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      weight            = capacity_provider_strategy.value.weight
+    }
+  }
 }
 
 resource "aws_ecs_service" "service_with_autoscaling" {
-  count = var.autoscaling != null ? 1 : 0
+  count      = var.autoscaling != null ? 1 : 0
+  depends_on = [terraform_data.no_launch_type_and_spot]
 
   name                               = var.application_name
   cluster                            = var.cluster_id
   task_definition                    = aws_ecs_task_definition.task.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.launch_type
+  launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
@@ -436,6 +462,19 @@ resource "aws_ecs_service" "service_with_autoscaling" {
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
     }
   }
+
+  # We set the service as a spot service through setting up the capacity_provider_strategy. 
+  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
+  dynamic "capacity_provider_strategy" {
+    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      weight            = capacity_provider_strategy.value.weight
+    }
+  }
+
+
 
   lifecycle {
     ignore_changes = [desired_count]

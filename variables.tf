@@ -26,7 +26,7 @@ variable "sidecar_containers" {
 }
 
 variable "launch_type" {
-  description = "What to launch the instance on."
+  description = "What to launch the instance on. Mutually exclusive with \"use_spot\"."
   type        = string
   default     = "FARGATE"
 
@@ -34,6 +34,12 @@ variable "launch_type" {
     condition     = contains(["EC2", "FARGATE", "EXTERNAL"], var.launch_type)
     error_message = "The launch_type must be either \"EC2\", \"FARGATE\" or \"EXTERNAL\"."
   }
+}
+
+variable "use_spot" {
+  description = "NB! NOT RECOMMENDED FOR PROD. Whether to use spot instances for the service. Requirement: FARGATE_SPOT enabled capacity providers. Mutually exclusive with \"launch_type\"."
+  type        = bool
+  default     = false
 }
 
 variable "cpu" {
