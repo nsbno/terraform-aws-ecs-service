@@ -6,7 +6,7 @@ orbs:
 # Preferably these would be a CircleCI parameter,
 # but parameters doesn't support lists or maps :(
 terraform-versions: &terraform-versions
-  - 1.3.7
+  - 1.4.4
 
 example-folders: &example-folders
   - examples/simple
@@ -30,4 +30,3 @@ workflows:
             parameters:
               tag: *terraform-versions
               path: *example-folders
-
