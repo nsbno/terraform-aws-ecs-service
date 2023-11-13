@@ -347,6 +347,18 @@ resource "aws_ecs_task_definition" "task" {
     }, container.extra_options)
   ])
 
+  volume {
+    name = "service-storage"
+
+    dynamic "efs_volume_configuration" {
+      for_each = var.efs_volumes
+      content {
+        file_system_id = efs_volume_configuration.value.file_system_id
+        root_directory = efs_volume_configuration.value.root_directory
+      }
+    }
+  }
+
   execution_role_arn = aws_iam_role.execution.arn
   task_role_arn      = aws_iam_role.task.arn
 

@@ -213,3 +213,12 @@ variable "xray_daemon_config_path" {
   type        = string
   default     = "ecs-xray.yaml"
 }
+
+variable "efs_volumes" {
+  description = "EFS modules to include in task defenition"
+  type = list(object({
+      file_system_id = string
+      root_directory = string
+  }))
+  default = []
+}
