@@ -62,7 +62,7 @@ variable "lb_listeners" {
 
     conditions = list(object({
       path_pattern = optional(string)
-      host_header  = optional(string)
+      host_header  = optional(any)
       http_header = optional(object({
         name   = string
         values = list(string)

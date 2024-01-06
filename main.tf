@@ -252,10 +252,11 @@ resource "aws_lb_listener_rule" "service" {
           values = [path_pattern.value]
         }
       }
+
       dynamic "host_header" {
         for_each = condition.value.host_header != null ? [condition.value.host_header] : []
         content {
-          values = [host_header.value]
+          values = flatten([host_header.value]) # Accept both a string or a list
         }
       }
       dynamic "http_header" {
