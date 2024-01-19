@@ -121,6 +121,25 @@ data "aws_iam_policy_document" "xray_daemon" {
   }
 }
 
+resource "aws_iam_role_policy" "ssm_messages_for_local_access" {
+  count = var.enable_execute_command ? 1 : 0
+
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.ssm_messages_for_local_access.json
+}
+
+data "aws_iam_policy_document" "ssm_messages_for_local_access" {
+  statement {
+    effect    = "Allow"
+    resources = ["*"]
+    actions = [
+      "ssmmessages:OpenDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:CreateControlChannel"
+    ]
+  }
+}
 
 /*
  * = Networking
