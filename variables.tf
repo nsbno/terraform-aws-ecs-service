@@ -213,3 +213,24 @@ variable "xray_daemon_config_path" {
   type        = string
   default     = "ecs-xray.yaml"
 }
+
+variable "custom_metrics" {
+  description = "The custom metrics for autoscaling. Check https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy#create-target-tracking-scaling-policy-using-metric-math for more information."
+  type = list(object({
+    label = string
+    id    = string
+    metric_stat = object({
+      metric = object({
+        metric_name = string
+        namespace   = string
+        dimensions = list(object({
+          name  = string
+          value = string
+        }))
+      })
+      stat = string
+    })
+    return_data = bool
+  }))
+  default = []
+}

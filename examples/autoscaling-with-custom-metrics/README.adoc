@@ -1,0 +1,8 @@
+= Autoscaling
+
+This example shows a service with autoscaling and a customized metrics.
+
+In this example we use a metric for checking the ApproximateNumberOfMessagesVisible in a SQS queue.
+
+The example is from:
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy#create-target-tracking-scaling-policy-using-metric-math[Terraform Docs]
