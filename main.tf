@@ -588,7 +588,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   lifecycle {
     precondition {
-      condition     = length(var.custom_metrics) > 0 || length(var.custom_metrics) != null
+      condition     = length(var.custom_metrics) > 0 || length(var.custom_metrics) == 0
       error_message = "You must have either a predefined metric or a customized metric for autoscaling."
     }
   }
