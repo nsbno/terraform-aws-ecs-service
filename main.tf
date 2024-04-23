@@ -295,12 +295,14 @@ resource "aws_lb_listener_rule" "service" {
  * This is what users are here for
  */
 locals {
-  xray_container = var.xray_daemon == true ? [{
-    name      = "aws-otel-collector",
-    image     = "amazon/aws-otel-collector",
-    command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
-    essential = true
-  }] : []
+  xray_container = var.xray_daemon == true ? [
+    {
+      name      = "aws-otel-collector",
+      image     = "amazon/aws-otel-collector",
+      command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
+      essential = true
+    }
+  ] : []
 
   containers = [
     for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
@@ -339,19 +341,25 @@ resource "aws_ecs_task_definition" "task" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      environment = [for key, value in container.environment : {
-        name  = key
-        value = value
-      }]
-      secrets = [for key, value in container.secrets : {
-        name      = key
-        valueFrom = value
-      }]
-      portMappings = [container.port == null ? null : {
-        containerPort = tonumber(container.port)
-        hostPort      = tonumber(container.port)
-        protocol      = container.network_protocol
-      }]
+      environment = [
+        for key, value in container.environment : {
+          name  = key
+          value = value
+        }
+      ]
+      secrets = [
+        for key, value in container.secrets : {
+          name      = key
+          valueFrom = value
+        }
+      ]
+      portMappings = [
+        container.port == null ? null : {
+          containerPort = tonumber(container.port)
+          hostPort      = tonumber(container.port)
+          protocol      = container.network_protocol
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -496,7 +504,6 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   }
 
 
-
   lifecycle {
     ignore_changes = [desired_count]
   }
@@ -540,12 +547,43 @@ resource "aws_appautoscaling_policy" "ecs_service" {
   service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = local.autoscaling.metric_type
-      resource_label         = var.autoscaling_resource_label
+    dynamic "predefined_metric_specification" {
+      for_each = length(var.custom_metrics) > 0 ? [0] : [1]
+      content {
+        predefined_metric_type = local.autoscaling.metric_type
+        resource_label         = var.autoscaling_resource_label
+      }
     }
 
-    target_value = local.autoscaling.target_value
+    dynamic "customized_metric_specification" {
+      for_each = length(var.custom_metrics) > 0 ? [1] : []
+      content {
+        dynamic "metrics" {
+          for_each = var.custom_metrics
+          content {
+            label = metrics.value.label
+            id    = metrics.value.id
+            metric_stat {
+              metric {
+                metric_name = metrics.value.metric_stat.metric.metric_name
+                namespace   = metrics.value.metric_stat.metric.namespace
+                dynamic "dimensions" {
+                  for_each = metrics.value.metric_stat.metric.dimensions
+                  content {
+                    name  = dimensions.value.name
+                    value = dimensions.value.value
+                  }
+                }
+              }
+              stat = metrics.value.metric_stat.stat
+            }
+            return_data = metrics.value.return_data
+          }
+        }
+      }
+    }
+
+    target_value = var.autoscaling.target_value ? var.autoscaling.target_value : local.autoscaling.target_value
   }
 }
 
