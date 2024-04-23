@@ -585,6 +585,13 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
     target_value = var.autoscaling.target_value ? var.autoscaling.target_value : local.autoscaling.target_value
   }
+
+  lifecycle {
+    precondition {
+      condition     = length(var.custom_metrics) > 0 || length(var.custom_metrics) != null
+      error_message = "You must have either a predefined metric or a customized metric for autoscaling."
+    }
+  }
 }
 
 # There is an issue with the AWS provider when it comes to creating multiple
@@ -599,10 +606,14 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
     if var.autoscaling != null
   }
 
-  name               = "${var.application_name}-scheduled-scaling"
-  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
+  name        = "${var.application_name}-scheduled-scaling"
+  resource_id = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[
+    0
+  ].scalable_dimension
+  service_namespace = aws_appautoscaling_target.ecs_service[
+    0
+  ].service_namespace
 
   timezone = var.autoscaling_schedule.timezone
   schedule = each.value.schedule
