@@ -583,7 +583,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
       }
     }
 
-    target_value = var.autoscaling.target_value ? var.autoscaling.target_value : local.autoscaling.target_value
+    target_value = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
   }
 
   lifecycle {
