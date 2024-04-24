@@ -548,7 +548,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   target_tracking_scaling_policy_configuration {
     dynamic "predefined_metric_specification" {
-      for_each = length(var.custom_metrics) > 0 ? [0] : [1]
+      for_each = length(var.custom_metrics) > 0 ? [] : [1]
       content {
         predefined_metric_type = local.autoscaling.metric_type
         resource_label         = var.autoscaling_resource_label
