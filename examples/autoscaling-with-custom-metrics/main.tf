@@ -12,12 +12,14 @@ locals {
  */
 
 data "aws_vpc" "main" {
+  #  Reference your existing VPC which usually is created centrally in -aws repo
   tags = {
     Name = "${local.name_prefix}-vpc"
   }
 }
 
 data "aws_subnets" "private" {
+  #  Reference your existing subnets which usually is created centrally in -aws repo
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id]
@@ -29,14 +31,17 @@ data "aws_subnets" "private" {
 }
 
 data "aws_ecs_cluster" "main" {
+  #  Reference your existing ECS cluster which usually is created centrally in -aws repo
   cluster_name = "${local.name_prefix}-cluster"
 }
 
 data "aws_lb" "main" {
+  #  Reference your existing ALB which usually is created centrally in -aws repo
   name = "${local.name_prefix}-alb"
 }
 
 data "aws_lb_listener" "http" {
+  #  Reference your existing ALB listener which usually is created centrally in -aws repo
   load_balancer_arn = data.aws_lb.main.arn
   port              = 80
 }
@@ -55,6 +60,7 @@ module "service" {
   cluster_id         = data.aws_ecs_cluster.main.id
 
   application_container = {
+    # Input your application container
     name     = "main"
     image    = "nginx:latest"
     port     = 80
