@@ -238,6 +238,17 @@ resource "aws_lb_target_group" "service" {
     }
   }
 
+  dynamic "stickiness" {
+    for_each = var.lb_stickiness[*]
+    content {
+      type            = var.lb_stickiness.type
+      enabled         = var.lb_stickiness.enabled
+      cookie_duration = var.lb_stickiness.cookie_duration
+      cookie_name     = var.lb_stickiness.cookie_name
+    }
+  }
+  
+
   # NOTE: TF is unable to destroy a target group while a listener is attached,
   # therefor we have to create a new one before destroying the old. This also means
   # we have to let it have a random name, and then tag it with the desired name.

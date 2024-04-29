@@ -213,3 +213,15 @@ variable "xray_daemon_config_path" {
   type        = string
   default     = "ecs-xray.yaml"
 }
+
+variable "lb_stickiness" {
+  description = "Bind a user's session to a specific target"
+  nullable    = true
+  type        = object({
+    type            = string
+    enabled         = optional(bool, null)
+    cookie_duration = optional(number, null)
+    cookie_name     = optional(string, null)
+  })
+  default = null
+}
