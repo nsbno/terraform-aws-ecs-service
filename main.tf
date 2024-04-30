@@ -588,8 +588,8 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   lifecycle {
     precondition {
-      condition = var.autoscaling_resource_label == "" && length(var.custom_metrics) > 0
-      error_message = "Autoscaling resource labels are for predefined metrics only"
+      condition = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
+      error_message = "Cannot define autoscaling resource label and custom metrics at the same time"
     }
   }
 }
