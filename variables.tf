@@ -36,6 +36,20 @@ variable "launch_type" {
   }
 }
 
+variable "ecs_service_timeouts" {
+  description = "The timeouts for terraform update of the ECS service"
+  type = object({
+    create = optional(string, null)
+    update = optional(string, null)
+    delete = optional(string, null)
+  })
+  default = {
+    create = "20m"
+    update = "20m"
+    delete = "20m"
+  }
+}
+
 variable "use_spot" {
   description = "NB! NOT RECOMMENDED FOR PROD. Whether to use spot instances for the service. Requirement: FARGATE_SPOT enabled capacity providers. Mutually exclusive with \"launch_type\"."
   type        = bool
