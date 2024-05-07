@@ -162,11 +162,12 @@ resource "aws_security_group" "ecs_service" {
   )
 }
 
+locals {
+  distinct_lb_listeners = toset(var.lb_listeners[*].security_group_id)
+}
+
 resource "aws_security_group_rule" "loadbalancer" {
-  for_each = (var.launch_type == "EXTERNAL"
-    ? {}
-    : { for lb in var.lb_listeners : lb.listener_arn => lb.security_group_id }
-  )
+  for_each = local.distinct_lb_listeners
 
   security_group_id = aws_security_group.ecs_service[0].id
 
@@ -179,10 +180,7 @@ resource "aws_security_group_rule" "loadbalancer" {
 }
 
 resource "aws_security_group_rule" "loadbalancer_to_service" {
-  for_each = (var.launch_type == "EXTERNAL"
-    ? {}
-    : { for lb in var.lb_listeners : lb.listener_arn => lb.security_group_id }
-  )
+  for_each = local.distinct_lb_listeners
 
   security_group_id = each.value
 
@@ -239,12 +237,12 @@ resource "aws_lb_target_group" "service" {
   }
 
   dynamic "stickiness" {
-    for_each = var.lb_stickiness[*]
+    for_each = each.value.lb_stickiness[*]
     content {
-      type            = var.lb_stickiness.type
-      enabled         = var.lb_stickiness.enabled
-      cookie_duration = var.lb_stickiness.cookie_duration
-      cookie_name     = var.lb_stickiness.cookie_name
+      type            = each.value.lb_stickiness.type
+      enabled         = each.value.lb_stickiness.enabled
+      cookie_duration = each.value.lb_stickiness.cookie_duration
+      cookie_name     = each.value.lb_stickiness.cookie_name
     }
   }
   
@@ -268,8 +266,21 @@ resource "aws_lb_listener_rule" "service" {
   listener_arn = each.value.listener_arn
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.service[each.key].arn
+    type = "forward"
+    forward {
+      target_group {
+        arn = aws_lb_target_group.service[each.key].arn
+      }
+
+      dynamic "stickiness" {
+        for_each = each.value.lb_stickiness[*]
+        content {
+          enabled = true
+          duration = stickiness.value.cookie_duration
+        }
+      }
+    }
+
   }
 
   dynamic "condition" {

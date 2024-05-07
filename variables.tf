@@ -59,7 +59,12 @@ variable "lb_listeners" {
   type = list(object({
     listener_arn      = string
     security_group_id = string
-
+    lb_stickiness = optional(object({
+      type            = string
+      enabled         = optional(bool,   null)
+      cookie_duration = optional(number, null)
+      cookie_name     = optional(string, null)
+    }))
     conditions = list(object({
       path_pattern = optional(string)
       host_header  = optional(any)
@@ -212,16 +217,4 @@ variable "xray_daemon_config_path" {
   description = "The config file to use for the X-Ray exporter sidecar. Should be one of the files found here: https://github.com/aws-observability/aws-otel-collector/tree/main/config/ecs."
   type        = string
   default     = "ecs-xray.yaml"
-}
-
-variable "lb_stickiness" {
-  description = "Bind a user's session to a specific target"
-  nullable    = true
-  type        = object({
-    type            = string
-    enabled         = optional(bool, null)
-    cookie_duration = optional(number, null)
-    cookie_name     = optional(string, null)
-  })
-  default = null
 }
