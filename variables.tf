@@ -37,7 +37,11 @@ variable "launch_type" {
 }
 
 variable "ecs_service_timeouts" {
-  description = "The timeouts for terraform update of the ECS service"
+  description = <<EOF
+  Default 20m. The timeouts for terraform update of the ECS service. If adjusted down, remember to also adjust health_check_grace_period_seconds.
+  Normally this should allow the ECS to at least do one retry of starting the container before timing out. The timeout is the whole rollout, not only the container startup.
+  I.e. health_check_grace_period_seconds * 2 + a bit extra > ecs_service_timeouts. 
+  EOF
   type = object({
     create = optional(string, null)
     update = optional(string, null)
