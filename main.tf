@@ -168,7 +168,7 @@ locals {
 }
 
 resource "aws_security_group_rule" "loadbalancer" {
-  for_each = local.lb_listeners_by_arn
+  for_each = local.distinct_lb_listeners_by_arn
 
   security_group_id = aws_security_group.ecs_service[0].id
 
@@ -177,13 +177,13 @@ resource "aws_security_group_rule" "loadbalancer" {
   from_port = var.application_container.port
   to_port   = var.application_container.port
 
-  source_security_group_id = each.value[0]
+  source_security_group_id = each.value
 }
 
 resource "aws_security_group_rule" "loadbalancer_to_service" {
-  for_each = local.lb_listeners_by_arn
+  for_each = local.distinct_lb_listeners_by_arn
 
-  security_group_id = each.value[0]
+  security_group_id = each.value
 
   type      = "egress"
   protocol  = "tcp"
