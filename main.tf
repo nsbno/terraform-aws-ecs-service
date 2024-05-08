@@ -163,11 +163,12 @@ resource "aws_security_group" "ecs_service" {
 }
 
 locals {
-  distinct_lb_listeners = toset(var.lb_listeners[*].security_group_id)
+  lb_listeners_by_arn          = { for listener in var.lb_listeners : listener.listener_arn => listener.security_group_id... }
+  distinct_lb_listeners_by_arn = { for key, val in local.lb_listeners_by_arn : key => val[0] }
 }
 
 resource "aws_security_group_rule" "loadbalancer" {
-  for_each = local.distinct_lb_listeners
+  for_each = local.lb_listeners_by_arn
 
   security_group_id = aws_security_group.ecs_service[0].id
 
@@ -176,13 +177,13 @@ resource "aws_security_group_rule" "loadbalancer" {
   from_port = var.application_container.port
   to_port   = var.application_container.port
 
-  source_security_group_id = each.value
+  source_security_group_id = each.value[0]
 }
 
 resource "aws_security_group_rule" "loadbalancer_to_service" {
-  for_each = local.distinct_lb_listeners
+  for_each = local.lb_listeners_by_arn
 
-  security_group_id = each.value
+  security_group_id = each.value[0]
 
   type      = "egress"
   protocol  = "tcp"
@@ -245,7 +246,7 @@ resource "aws_lb_target_group" "service" {
       cookie_name     = each.value.lb_stickiness.cookie_name
     }
   }
-  
+
 
   # NOTE: TF is unable to destroy a target group while a listener is attached,
   # therefor we have to create a new one before destroying the old. This also means
@@ -275,7 +276,7 @@ resource "aws_lb_listener_rule" "service" {
       dynamic "stickiness" {
         for_each = each.value.lb_stickiness[*]
         content {
-          enabled = true
+          enabled  = true
           duration = stickiness.value.cookie_duration
         }
       }
