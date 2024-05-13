@@ -238,6 +238,16 @@ resource "aws_lb_target_group" "service" {
     }
   }
 
+  dynamic "stickiness" {
+    for_each = var.lb_stickiness[*]
+        content {
+      type            = var.lb_stickiness.type
+      enabled         = var.lb_stickiness.enabled
+      cookie_duration = var.lb_stickiness.type == "lb_cookie" ? var.lb_stickiness.cookie_duration : null
+      cookie_name     = var.lb_stickiness.cookie_name
+    }
+  }
+
   # NOTE: TF is unable to destroy a target group while a listener is attached,
   # therefor we have to create a new one before destroying the old. This also means
   # we have to let it have a random name, and then tag it with the desired name.
@@ -257,8 +267,20 @@ resource "aws_lb_listener_rule" "service" {
   listener_arn = each.value.listener_arn
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.service[each.key].arn
+    type = "forward"
+    forward {
+      target_group {
+        arn = aws_lb_target_group.service[each.key].arn
+      }
+
+      dynamic "stickiness" {
+        for_each = var.lb_stickiness[*]
+        content {
+          enabled  = true
+          duration = stickiness.value.cookie_duration
+        }
+      }
+    }
   }
 
   dynamic "condition" {
