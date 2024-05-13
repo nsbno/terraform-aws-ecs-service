@@ -451,6 +451,12 @@ resource "aws_ecs_service" "service" {
       weight            = capacity_provider_strategy.value.weight
     }
   }
+
+  timeouts {
+    create = var.ecs_service_timeouts.create
+    update = var.ecs_service_timeouts.update
+    delete = var.ecs_service_timeouts.delete
+  }
 }
 
 resource "aws_ecs_service" "service_with_autoscaling" {
@@ -506,6 +512,12 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   lifecycle {
     ignore_changes = [desired_count]
+  }
+
+  timeouts {
+    create = var.ecs_service_timeouts.create
+    update = var.ecs_service_timeouts.update
+    delete = var.ecs_service_timeouts.delete
   }
 }
 
@@ -588,7 +600,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   lifecycle {
     precondition {
-      condition = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
+      condition     = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
       error_message = "Cannot define autoscaling resource label and custom metrics at the same time"
     }
   }
