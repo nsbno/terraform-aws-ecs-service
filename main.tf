@@ -240,10 +240,10 @@ resource "aws_lb_target_group" "service" {
 
   dynamic "stickiness" {
     for_each = var.lb_stickiness[*]
-        content {
+    content {
       type            = var.lb_stickiness.type
       enabled         = var.lb_stickiness.enabled
-      cookie_duration = var.lb_stickiness.type == "lb_cookie" ? var.lb_stickiness.cookie_duration : null
+      cookie_duration = var.lb_stickiness.cookie_duration
       cookie_name     = var.lb_stickiness.cookie_name
     }
   }
@@ -261,10 +261,6 @@ resource "aws_lb_target_group" "service" {
   )
 }
 
-locals {
-  enable_stickiness = var.lb_stickiness.enabled ? 1 : null
-}
-
 resource "aws_lb_listener_rule" "service" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
@@ -276,9 +272,8 @@ resource "aws_lb_listener_rule" "service" {
       target_group {
         arn = aws_lb_target_group.service[each.key].arn
       }
-
       dynamic "stickiness" {
-        for_each = local.enable_stickiness[*]
+        for_each = var.lb_stickiness.enabled ? [1] : []
         content {
           enabled  = true
           duration = var.lb_stickiness.cookie_duration
@@ -614,7 +609,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   lifecycle {
     precondition {
-      condition = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
+      condition     = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
       error_message = "Cannot define autoscaling resource label and custom metrics at the same time"
     }
   }
