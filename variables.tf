@@ -237,12 +237,16 @@ variable "custom_metrics" {
 
 variable "lb_stickiness" {
   description = "Bind a user's session to a specific target"
-  nullable    = true
+  nullable    = false
   type        = object({
     type            = string
     enabled         = optional(bool, null)
     cookie_duration = optional(number, null)
     cookie_name     = optional(string, null)
     })
-  default = null
+  default = {
+    type            = "lb_cookie"
+    enabled         = false
+    cookie_duration = 86400
+  }
 }

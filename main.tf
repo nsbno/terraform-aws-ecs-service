@@ -261,6 +261,10 @@ resource "aws_lb_target_group" "service" {
   )
 }
 
+locals {
+  enable_stickiness = var.lb_stickiness.enabled ? 1 : null
+}
+
 resource "aws_lb_listener_rule" "service" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
@@ -274,10 +278,10 @@ resource "aws_lb_listener_rule" "service" {
       }
 
       dynamic "stickiness" {
-        for_each = var.lb_stickiness[*]
+        for_each = local.enable_stickiness[*]
         content {
           enabled  = true
-          duration = stickiness.value.cookie_duration
+          duration = var.lb_stickiness.cookie_duration
         }
       }
     }
