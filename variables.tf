@@ -77,7 +77,12 @@ variable "lb_listeners" {
   type = list(object({
     listener_arn      = string
     security_group_id = string
-
+    lb_stickiness = optional(object({
+      type            = string
+      enabled         = optional(bool,   null)
+      cookie_duration = optional(number, null)
+      cookie_name     = optional(string, null)
+    }))
     conditions = list(object({
       path_pattern = optional(string)
       host_header  = optional(any)

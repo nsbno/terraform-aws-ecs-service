@@ -162,11 +162,13 @@ resource "aws_security_group" "ecs_service" {
   )
 }
 
+locals {
+  lb_listeners_by_arn          = { for listener in var.lb_listeners : listener.listener_arn => listener.security_group_id... }
+  distinct_lb_listeners_by_arn = { for key, val in local.lb_listeners_by_arn : key => val[0] }
+}
+
 resource "aws_security_group_rule" "loadbalancer" {
-  for_each = (var.launch_type == "EXTERNAL"
-    ? {}
-    : { for lb in var.lb_listeners : lb.listener_arn => lb.security_group_id }
-  )
+  for_each = local.distinct_lb_listeners_by_arn
 
   security_group_id = aws_security_group.ecs_service[0].id
 
@@ -179,10 +181,7 @@ resource "aws_security_group_rule" "loadbalancer" {
 }
 
 resource "aws_security_group_rule" "loadbalancer_to_service" {
-  for_each = (var.launch_type == "EXTERNAL"
-    ? {}
-    : { for lb in var.lb_listeners : lb.listener_arn => lb.security_group_id }
-  )
+  for_each = local.distinct_lb_listeners_by_arn
 
   security_group_id = each.value
 
@@ -238,6 +237,17 @@ resource "aws_lb_target_group" "service" {
     }
   }
 
+  dynamic "stickiness" {
+    for_each = each.value.lb_stickiness[*]
+    content {
+      type            = each.value.lb_stickiness.type
+      enabled         = each.value.lb_stickiness.enabled
+      cookie_duration = each.value.lb_stickiness.cookie_duration
+      cookie_name     = each.value.lb_stickiness.cookie_name
+    }
+  }
+
+
   # NOTE: TF is unable to destroy a target group while a listener is attached,
   # therefor we have to create a new one before destroying the old. This also means
   # we have to let it have a random name, and then tag it with the desired name.
@@ -257,8 +267,21 @@ resource "aws_lb_listener_rule" "service" {
   listener_arn = each.value.listener_arn
 
   action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.service[each.key].arn
+    type = "forward"
+    forward {
+      target_group {
+        arn = aws_lb_target_group.service[each.key].arn
+      }
+
+      dynamic "stickiness" {
+        for_each = each.value.lb_stickiness[*]
+        content {
+          enabled  = true
+          duration = stickiness.value.cookie_duration
+        }
+      }
+    }
+
   }
 
   dynamic "condition" {
