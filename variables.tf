@@ -79,7 +79,7 @@ variable "lb_listeners" {
     security_group_id = string
 
     conditions = list(object({
-      path_pattern = optional(string)
+      path_patterns = optional(list(string))
       host_header  = optional(any)
       http_header = optional(object({
         name   = string

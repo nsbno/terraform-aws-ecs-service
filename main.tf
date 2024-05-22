@@ -287,9 +287,9 @@ resource "aws_lb_listener_rule" "service" {
 
     content {
       dynamic "path_pattern" {
-        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
+        for_each = condition.value.path_patterns != null ? [1] : []
         content {
-          values = [path_pattern.value]
+          values = condition.value.path_patterns
         }
       }
 
