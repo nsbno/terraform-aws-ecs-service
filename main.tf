@@ -596,7 +596,8 @@ resource "aws_appautoscaling_policy" "ecs_service" {
           content {
             label = metrics.value.label
             id    = metrics.value.id
-            metric_stat {
+            dynamic metric_stat {
+              for_each = metrics.value.metric_stat == null ? [] : [1]
               metric {
                 metric_name = metrics.value.metric_stat.metric.metric_name
                 namespace   = metrics.value.metric_stat.metric.namespace
