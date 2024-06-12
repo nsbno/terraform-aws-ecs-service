@@ -237,7 +237,7 @@ variable "custom_metrics" {
   type = list(object({
     label = string
     id    = string
-    metric_stat = object({
+    metric_stat = optional(object({
       metric = object({
         metric_name = string
         namespace   = string
@@ -247,7 +247,7 @@ variable "custom_metrics" {
         }))
       })
       stat = string
-    })
+    }))
     return_data = bool
   }))
   default = []
