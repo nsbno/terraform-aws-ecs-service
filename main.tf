@@ -589,7 +589,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
     }
 
     dynamic "customized_metric_specification" {
-      for_each = var.custom_metrics[*]
+      for_each = length(var.custom_metrics) > 0 ? [1] : []
       content {
         dynamic "metrics" {
           for_each = var.custom_metrics
