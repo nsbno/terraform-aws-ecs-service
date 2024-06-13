@@ -589,7 +589,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
     }
 
     dynamic "customized_metric_specification" {
-      for_each = length(var.custom_metrics) > 0 ? [1] : []
+      for_each = var.custom_metrics[*]
       content {
         dynamic "metrics" {
           for_each = var.custom_metrics
@@ -597,20 +597,20 @@ resource "aws_appautoscaling_policy" "ecs_service" {
             label = metrics.value.label
             id    = metrics.value.id
             dynamic metric_stat {
-              for_each = metrics.value.metric_stat == null ? [] : [1]
+              for_each = metrics.value.metric_stat[*]
               content {
                 metric {
-                  metric_name = metrics.value.metric_stat.metric.metric_name
-                  namespace   = metrics.value.metric_stat.metric.namespace
+                  metric_name = metric_stat.value.metric.metric_name
+                  namespace   = metric_stat.value.metric.namespace
                   dynamic "dimensions" {
-                    for_each = metrics.value.metric_stat.metric.dimensions
+                    for_each = metric_stat.value.metric.dimensions
                     content {
                       name  = dimensions.value.name
                       value = dimensions.value.value
                     }
                   }
                 }
-                stat = metrics.value.metric_stat.stat
+                stat = metric_stat.value.stat
               }
             }
             return_data = metrics.value.return_data
