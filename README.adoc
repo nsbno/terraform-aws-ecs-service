@@ -150,3 +150,8 @@ Main things to note:
 A guide is available if you were previously using `terraform-aws-ecs-fargate` or `terraform-aws-ecs-anywhere`.
 
 Go check out link:docs/move-from-old-modules.adoc[the documentation about moving from old modules]!
+
+== FAQ
+
+* Missing required arguments?
+    - Newer versions of this module requires `hashicorp/aws` version >= `5.0.0`
