@@ -266,22 +266,33 @@ resource "aws_lb_listener_rule" "service" {
 
   listener_arn = each.value.listener_arn
 
-  action {
-    type = "forward"
-    forward {
-      dynamic "target_group" {
-        for_each = aws_lb_target_group.service
-        content {
-          arn = target_group.value.arn
+
+  # forward blocks require at least two target group blocks
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.service) > 1 ? [1] : []
+    content {
+      type = "forward"
+      forward {
+        target_group {
+          arn = aws_lb_target_group.service[each.key].arn
+        }
+        dynamic "stickiness" {
+          for_each = var.lb_stickiness.enabled ? [1] : []
+          content {
+            enabled  = true
+            duration = var.lb_stickiness.cookie_duration
+          }
         }
       }
-      dynamic "stickiness" {
-        for_each = var.lb_stickiness.enabled ? [1] : []
-        content {
-          enabled  = true
-          duration = var.lb_stickiness.cookie_duration
-        }
-      }
+    }
+  }
+
+  # Use default forward type if only one target group is defined
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.service) == 1 ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.service[each.key].arn
     }
   }
 
