@@ -549,6 +549,7 @@ locals {
   # The Cluster ID is the cluster's ARN.
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
+
   autoscaling = var.autoscaling != null ? var.autoscaling : {
     min_capacity = var.desired_count
     max_capacity = var.desired_count
@@ -616,7 +617,9 @@ resource "aws_appautoscaling_policy" "ecs_service" {
       }
     }
 
-    target_value = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
+    target_value       = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
+    scale_in_cooldown  = var.autoscaling.scale_in_cooldown
+    scale_out_cooldown = var.autoscaling.scale_out_cooldown
   }
 
   lifecycle {

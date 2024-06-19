@@ -117,10 +117,12 @@ variable "desired_count" {
 variable "autoscaling" {
   description = "Enable autoscaling for the service"
   type = object({
-    min_capacity = number
-    max_capacity = number
-    metric_type  = string
-    target_value = string
+    min_capacity       = number
+    max_capacity       = number
+    metric_type        = string
+    target_value       = string
+    scale_in_cooldown  = optional(number, null) # in seconds
+    scale_out_cooldown = optional(number, null) # in seconds
   })
   default = null
 }
