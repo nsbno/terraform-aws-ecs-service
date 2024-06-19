@@ -269,8 +269,11 @@ resource "aws_lb_listener_rule" "service" {
   action {
     type = "forward"
     forward {
-      target_group {
-        arn = aws_lb_target_group.service[each.key].arn
+      dynamic "target_group" {
+        for_each = aws_lb_target_group.service
+        content {
+          arn = target_group.value.arn
+        }
       }
       dynamic "stickiness" {
         for_each = var.lb_stickiness.enabled ? [1] : []
