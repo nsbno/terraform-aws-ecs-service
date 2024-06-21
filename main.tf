@@ -266,19 +266,33 @@ resource "aws_lb_listener_rule" "service" {
 
   listener_arn = each.value.listener_arn
 
-  action {
-    type = "forward"
-    forward {
-      target_group {
-        arn = aws_lb_target_group.service[each.key].arn
-      }
-      dynamic "stickiness" {
-        for_each = var.lb_stickiness.enabled ? [1] : []
-        content {
-          enabled  = true
-          duration = var.lb_stickiness.cookie_duration
+
+  # forward blocks require at least two target group blocks
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.service) > 1 ? [1] : []
+    content {
+      type = "forward"
+      forward {
+        target_group {
+          arn = aws_lb_target_group.service[each.key].arn
+        }
+        dynamic "stickiness" {
+          for_each = var.lb_stickiness.enabled ? [1] : []
+          content {
+            enabled  = true
+            duration = var.lb_stickiness.cookie_duration
+          }
         }
       }
+    }
+  }
+
+  # Use default forward type if only one target group is defined
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.service) == 1 ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.service[each.key].arn
     }
   }
 
@@ -549,6 +563,7 @@ locals {
   # The Cluster ID is the cluster's ARN.
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
+
   autoscaling = var.autoscaling != null ? var.autoscaling : {
     min_capacity = var.desired_count
     max_capacity = var.desired_count
@@ -616,7 +631,9 @@ resource "aws_appautoscaling_policy" "ecs_service" {
       }
     }
 
-    target_value = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
+    target_value       = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
+    scale_in_cooldown  = var.autoscaling.scale_in_cooldown
+    scale_out_cooldown = var.autoscaling.scale_out_cooldown
   }
 
   lifecycle {
