@@ -613,7 +613,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
                 stat = metric_stat.value.stat
               }
             }
-            expression =  metrics.value.metric_stat == null ? "foo" : null
+            expression =  metrics.value.metric_stat == null ? metrics.value.expression : null
             return_data = metrics.value.return_data
           }
         }
