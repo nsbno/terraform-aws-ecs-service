@@ -611,20 +611,24 @@ resource "aws_appautoscaling_policy" "ecs_service" {
           content {
             label = metrics.value.label
             id    = metrics.value.id
-            metric_stat {
-              metric {
-                metric_name = metrics.value.metric_stat.metric.metric_name
-                namespace   = metrics.value.metric_stat.metric.namespace
-                dynamic "dimensions" {
-                  for_each = metrics.value.metric_stat.metric.dimensions
-                  content {
-                    name  = dimensions.value.name
-                    value = dimensions.value.value
+            dynamic metric_stat {
+              for_each = metrics.value.metric_stat[*]
+              content {
+                metric {
+                  metric_name = metric_stat.value.metric.metric_name
+                  namespace   = metric_stat.value.metric.namespace
+                  dynamic "dimensions" {
+                    for_each = metric_stat.value.metric.dimensions
+                    content {
+                      name  = dimensions.value.name
+                      value = dimensions.value.value
+                    }
                   }
                 }
+                stat = metric_stat.value.stat
               }
-              stat = metrics.value.metric_stat.stat
             }
+            expression = metrics.value.expression
             return_data = metrics.value.return_data
           }
         }
