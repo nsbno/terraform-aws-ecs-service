@@ -248,7 +248,7 @@ variable "custom_metrics" {
         }))
       })
       stat = string
-    }), null)
+    }))
     return_data = bool
   }))
   default = []
