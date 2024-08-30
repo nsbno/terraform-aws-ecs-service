@@ -222,6 +222,12 @@ variable "wait_for_steady_state" {
   default     = false
 }
 
+variable "datadog" {
+  description = "Should a Datadog agent be attached to the service?"
+  type        = bool
+  default     = false
+}
+
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool

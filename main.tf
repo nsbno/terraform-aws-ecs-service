@@ -324,6 +324,10 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
+module "account_metadata" {
+  source = "github.com/nsbno/terraform-aws-account-metadata?ref=0.1.1"
+}
+
 /*
  * = ECS Service
  *
@@ -338,6 +342,73 @@ locals {
       essential = true
     }
   ] : []
+
+  datadog_api_key_secret = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
+
+  datadog_containers = var.datadog == true ? [
+    {
+      name = "datadog-agent",
+      image = "public.ecr.aws/datadog/agent:latest",
+      essential = true,
+
+      environment = {
+        ECS_FARGATE = "true"
+
+        DD_SITE = "datadoghq.eu"
+
+        DD_SERVICE = var.application_name
+        DD_ENV = module.account_metadata.account.environment
+        DD_VERSION = split(":", var.application_container.image)[1]
+
+        DD_APM_ENABLED = "true"
+      },
+      secrets = {
+        DD_API_KEY = local.datadog_api_key_secret
+      }
+    },
+    {
+      name      = "log-router",
+      image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
+      essential = true,
+
+      firelensConfiguration = {
+        type = "fluentbit",
+        options = {
+          enable-ecs-log-metadata = "true",
+          config-file-type        = "file",
+          config-file-value       = "/fluent-bit/configs/parse-json.conf"
+        }
+      }
+    },
+  ] : []
+
+  datadog_log_driver = {
+    logDriver = "awsfirelens",
+    options = {
+      Name       = "datadog",
+      Host       = "http-intake.logs.datadoghq.eu",
+      TLS        = "on"
+      provider   = "ecs"
+      dd_service = var.application_name,
+      dd_tags    = "${var.application_name}:fluentbit",
+      dd_version = split(":", var.application_container.image)[1]
+    }
+    secretOptions = [
+      {
+        name      = "dd_api_key",
+        valueFrom = local.datadog_api_key_secret
+      }
+    ]
+  }
+
+  aws_log_driver = {
+    logDriver = "awslogs"
+    options = {
+      "awslogs-group" : aws_cloudwatch_log_group.main.name,
+      "awslogs-region" : data.aws_region.current.name,
+      "awslogs-stream-prefix" : container.name
+    }
+  }
 
   containers = [
     for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
@@ -358,6 +429,7 @@ locals {
       extra_options     = try(container.extra_options, {})
     }
   ]
+
   capacity_provider_strategy = {
     capacity_provider = "FARGATE_SPOT"
     weight            = 1
@@ -395,7 +467,7 @@ resource "aws_ecs_task_definition" "task" {
           protocol      = container.network_protocol
         }
       ]
-      logConfiguration = {
+      logConfiguration = var.datadog ? local.datadog_log_driver : {
         logDriver = "awslogs"
         options = {
           "awslogs-group" : aws_cloudwatch_log_group.main.name,
