@@ -58,6 +58,30 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       "logs:PutLogEvents",
     ]
   }
+
+    statement {
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [
+      local.datadog_api_key_secret
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt"
+    ]
+
+    resources = [
+      local.datadog_api_key_kms
+    ]
+  }
 }
 
 /*
@@ -344,6 +368,7 @@ locals {
   ] : []
 
   datadog_api_key_secret = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
+  datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   datadog_containers = var.datadog == true ? [
     {
@@ -399,15 +424,6 @@ locals {
         valueFrom = local.datadog_api_key_secret
       }
     ]
-  }
-
-  aws_log_driver = {
-    logDriver = "awslogs"
-    options = {
-      "awslogs-group" : aws_cloudwatch_log_group.main.name,
-      "awslogs-region" : data.aws_region.current.name,
-      "awslogs-stream-prefix" : container.name
-    }
   }
 
   containers = [
