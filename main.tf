@@ -405,7 +405,7 @@ locals {
         }
       }
     },
-  ] : []
+  ] : null
 
   datadog_log_driver = {
     logDriver = "awsfirelens",
