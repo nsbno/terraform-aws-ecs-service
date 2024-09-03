@@ -407,25 +407,6 @@ locals {
     },
   ] : null
 
-  datadog_log_driver = {
-    logDriver = "awsfirelens",
-    options = {
-      Name       = "datadog",
-      Host       = "http-intake.logs.datadoghq.eu",
-      TLS        = "on"
-      provider   = "ecs"
-      dd_service = var.application_name,
-      dd_tags    = "${var.application_name}:fluentbit",
-      dd_version = split(":", var.application_container.image)[1]
-    }
-    secretOptions = [
-      {
-        name      = "dd_api_key",
-        valueFrom = local.datadog_api_key_secret
-      }
-    ]
-  }
-
   containers = [
     for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
       name    = container.name
@@ -454,7 +435,17 @@ locals {
 
 data "aws_region" "current" {}
 
+# == Hack for terraform invisible strong typing
+#
+# This is a workaround for the fact that a variable can't have a ternary
+# that returns two objects where the keys are different.
+#
+# To work around this we conditionally create a task with an AWS logger
+# or a Datadog logger.
+
 resource "aws_ecs_task_definition" "task" {
+  count = var.datadog == true ? 0 : 1
+
   family = var.application_name
   container_definitions = jsonencode([
     for container in local.containers : merge({
@@ -483,7 +474,7 @@ resource "aws_ecs_task_definition" "task" {
           protocol      = container.network_protocol
         }
       ]
-      logConfiguration = var.datadog ? local.datadog_log_driver : {
+      logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-group" : aws_cloudwatch_log_group.main.name,
@@ -507,6 +498,80 @@ resource "aws_ecs_task_definition" "task" {
   # ECS Anywhere can't have "awsvpc" as the network mode
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
+
+resource "aws_ecs_task_definition" "task_datadog" {
+  count = var.datadog == true ? 1 : 0
+
+  family = var.application_name
+
+  container_definitions = jsonencode([
+    for container in local.containers : merge({
+      name    = container.name
+      image   = container.image
+      command = container.command
+      # Only the application container is essential
+      # Container names have to be unique, so this is guaranteed to be correct.
+      essential = container.essential
+      environment = [
+        for key, value in container.environment : {
+          name  = key
+          value = value
+        }
+      ]
+      secrets = [
+        for key, value in container.secrets : {
+          name      = key
+          valueFrom = value
+        }
+      ]
+      portMappings = container.port == null ? [] : [
+        {
+          containerPort = tonumber(container.port)
+          hostPort      = tonumber(container.port)
+          protocol      = container.network_protocol
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awsfirelens",
+        options = {
+          Name       = "datadog",
+          Host       = "http-intake.logs.datadoghq.eu",
+          TLS        = "on"
+          provider   = "ecs"
+          dd_service = var.application_name,
+          dd_tags    = "${var.application_name}:fluentbit",
+          dd_version = split(":", var.application_container.image)[1]
+        }
+        secretOptions = [
+          {
+            name      = "dd_api_key",
+            valueFrom = local.datadog_api_key_secret
+          }
+        ]
+      }
+
+      healthCheck       = container.health_check
+      cpu               = container.cpu
+      memory            = container.memory_hard_limit
+      memoryReservation = container.memory_soft_limit
+    }, container.extra_options)
+  ])
+
+  execution_role_arn = aws_iam_role.execution.arn
+  task_role_arn      = aws_iam_role.task.arn
+
+  requires_compatibilities = [var.launch_type]
+  cpu                      = var.cpu
+  memory                   = var.memory
+  # ECS Anywhere can't have "awsvpc" as the network mode
+  network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+}
+
+locals {
+  task_definition = var.datadog == true ? aws_ecs_task_definition.task_datadog[0] : aws_ecs_task_definition.task[0]
+}
+
+# == End of hack ==
 
 # Service preconditions to ensure that the user doesn't try combinations we want to avoid.
 resource "terraform_data" "no_launch_type_and_spot" {
@@ -532,7 +597,7 @@ resource "aws_ecs_service" "service" {
 
   name                               = var.application_name
   cluster                            = var.cluster_id
-  task_definition                    = aws_ecs_task_definition.task.arn
+  task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
   launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
@@ -588,7 +653,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   name                               = var.application_name
   cluster                            = var.cluster_id
-  task_definition                    = aws_ecs_task_definition.task.arn
+  task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
   launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
