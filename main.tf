@@ -396,12 +396,14 @@ locals {
       image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
       essential = true,
 
-      firelensConfiguration = {
-        type = "fluentbit",
-        options = {
-          enable-ecs-log-metadata = "true",
-          config-file-type        = "file",
-          config-file-value       = "/fluent-bit/configs/parse-json.conf"
+      extra_options = {
+        firelensConfiguration = {
+          type = "fluentbit",
+          options = {
+            enable-ecs-log-metadata = "true",
+            config-file-type        = "file",
+            config-file-value       = "/fluent-bit/configs/parse-json.conf"
+          }
         }
       }
     },
@@ -532,7 +534,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
         }
       ]
 
-      logConfiguration = container.name == "log-router" ? null : {
+      logConfiguration = {
         logDriver = "awsfirelens",
         options = {
           Name       = "datadog",
