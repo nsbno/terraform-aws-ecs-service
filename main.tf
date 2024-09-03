@@ -408,7 +408,7 @@ locals {
   ] : null
 
   containers = [
-    for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
+    for container in concat([var.application_container], var.sidecar_containers, local.xray_container, local.datadog_containers) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)
