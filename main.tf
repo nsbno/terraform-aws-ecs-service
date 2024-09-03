@@ -531,7 +531,8 @@ resource "aws_ecs_task_definition" "task_datadog" {
           protocol      = container.network_protocol
         }
       ]
-      logConfiguration = {
+
+      logConfiguration = container.name == "log-router" ? null : {
         logDriver = "awsfirelens",
         options = {
           Name       = "datadog",
