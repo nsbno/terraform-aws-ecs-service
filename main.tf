@@ -547,11 +547,10 @@ resource "aws_ecs_task_definition" "task_datadog" {
           provider   = "ecs"
           dd_service = var.application_name,
           dd_tags    = "${var.application_name}:fluentbit",
-          dd_version = split(":", var.application_container.image)[1]
         }
         secretOptions = [
           {
-            name      = "dd_api_key",
+            name      = "apiKey",
             valueFrom = local.datadog_api_key_secret
           }
         ]
