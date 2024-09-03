@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "task_execution_permissions" {
     ]
   }
 
-    statement {
+  statement {
     effect = "Allow"
 
     actions = [
@@ -357,6 +357,10 @@ module "account_metadata" {
  *
  * This is what users are here for
  */
+data "aws_secretsmanager_secret" "datadog_agent_api_key" {
+  arn = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
+}
+
 locals {
   xray_container = var.xray_daemon == true ? [
     {
@@ -367,7 +371,7 @@ locals {
     }
   ] : []
 
-  datadog_api_key_secret = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
+  datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   datadog_containers = var.datadog == true ? [
