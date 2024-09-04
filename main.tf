@@ -366,7 +366,7 @@ locals {
     {
       name      = "aws-otel-collector",
       image     = "amazon/aws-otel-collector",
-      command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
+      command = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
       essential = true
     }
   ] : []
@@ -376,8 +376,8 @@ locals {
 
   datadog_containers = var.datadog == true ? [
     {
-      name = "datadog-agent",
-      image = "public.ecr.aws/datadog/agent:latest",
+      name      = "datadog-agent",
+      image     = "public.ecr.aws/datadog/agent:latest",
       essential = true,
 
       environment = {
@@ -386,7 +386,7 @@ locals {
         DD_SITE = "datadoghq.eu"
 
         DD_SERVICE = var.application_name
-        DD_ENV = module.account_metadata.account.environment
+        DD_ENV     = module.account_metadata.account.environment
         DD_VERSION = split(":", var.application_container.image)[1]
 
         DD_APM_ENABLED = "true"
@@ -412,9 +412,23 @@ locals {
       }
     },
   ] : null
+}
+
+module "autoinstrumentation_setup" {
+  source = "./modules/autoinstrumentation_setup"
+
+  count = var.datadog_instrumentation_language == null ? 0 : 1
+
+  application_container = var.application_container
+  datadog_instrumentation_language = var.datadog_instrumentation_language
+}
+
+locals {
+  application_container = var.datadog_instrumentation_language == null ? var.application_container : module.autoinstrumentation_setup.application_container_definition
+  init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup.init_container_definition]
 
   containers = [
-    for container in concat([var.application_container], var.sidecar_containers, local.xray_container, local.datadog_containers) : {
+    for container in concat([local.application_container], var.sidecar_containers, local.xray_container, local.datadog_containers, local.init_container) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)

@@ -228,6 +228,12 @@ variable "datadog" {
   default     = false
 }
 
+variable "datadog_instrumentation_language" {
+  description = "Should we autoinstrument the service?"
+  type        = string
+  default     = null
+}
+
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool
