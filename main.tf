@@ -424,7 +424,7 @@ module "autoinstrumentation_setup" {
 }
 
 locals {
-  application_container = var.datadog_instrumentation_language == null ? tomap(var.application_container) : tomap(module.autoinstrumentation_setup[0].application_container_definition)
+  application_container = var.datadog_instrumentation_language == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
