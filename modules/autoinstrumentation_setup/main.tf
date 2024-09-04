@@ -58,7 +58,7 @@ locals {
         dependsOn = [
           {
             containerName = "datadog-auto-instrumentation-init",
-            condition     = "HEALTHY"
+            condition     = "START"
           }
         ]
         volumesFrom = [
