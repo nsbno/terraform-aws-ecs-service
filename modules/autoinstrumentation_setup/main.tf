@@ -1,6 +1,6 @@
 variable "application_container" {
   description = "The application that is being run by the service"
-  type        = map(any)
+  type        = any
 }
 
 variable "datadog_instrumentation_language" {
@@ -81,19 +81,19 @@ output "application_container_definition" {
 
   precondition {
     # Error if the application container already has one of the keys we are trying to add
-    condition = [
-      for key, value in var.application_container["environment"] :
-      contains(keys(local.auto_instrumentation_for_app_container_injection_extra_options), key)
-    ]
+    condition = anytrue([
+      for key, value in lookup(var.application_container, "environment", {}) :
+      contains(keys(local.auto_instrumentation_for_app_container_injection_extra_options["js"]), key)
+    ])
     error_message = "Your application already has an env var that is used by the auto-instrumentation. Contact Team Utviklerplatform for help."
   }
 
   precondition {
     # Do the same for extra options
-    condition = [
-      for key, value in var.application_container["extra_options"] :
-      contains(keys(local.auto_instrumentation_for_app_container_injection_extra_options), key)
-    ]
+    condition = anytrue([
+      for key, value in lookup(var.application_container, "extra_options", {}) :
+      contains(keys(local.auto_instrumentation_for_app_container_injection_extra_options["js"]), key)
+    ])
     error_message = "Your application already has an extra option that is used by the auto-instrumentation. Contact Team Utviklerplatform for help."
   }
 }

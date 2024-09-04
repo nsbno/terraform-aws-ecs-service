@@ -424,8 +424,8 @@ module "autoinstrumentation_setup" {
 }
 
 locals {
-  application_container = var.datadog_instrumentation_language == null ? var.application_container : module.autoinstrumentation_setup.application_container_definition
-  init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup.init_container_definition]
+  application_container = var.datadog_instrumentation_language == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
+  init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
     for container in concat([local.application_container], var.sidecar_containers, local.xray_container, local.datadog_containers, local.init_container) : {
