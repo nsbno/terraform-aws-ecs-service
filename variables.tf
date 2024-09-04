@@ -22,8 +22,8 @@ variable "application_container" {
     essential = optional(bool, true)
     command = optional(string)
 
-    environment = optional(map(string))
-    secrets = optional(map(string))
+    environment = optional(map(string), {})
+    secrets = optional(map(string), {})
 
     cpu = optional(number)
     memory_hard_limit = optional(number)
