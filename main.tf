@@ -543,6 +543,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
         options = {
           Name       = "datadog",
           Host       = "http-intake.logs.datadoghq.eu",
+          compress   = "gzip",
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
