@@ -64,6 +64,7 @@ locals {
         volumesFrom = [
           {
             sourceContainer = "datadog-auto-instrumentation-init"
+            readOnly = true
           }
         ]
       }

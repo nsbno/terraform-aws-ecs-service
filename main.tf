@@ -586,6 +586,14 @@ resource "aws_ecs_task_definition" "task_datadog" {
   memory                   = var.memory
   # ECS Anywhere can't have "awsvpc" as the network mode
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+
+  dynamic "volume" {
+    for_each = var.datadog_instrumentation_language != null ? [1] : []
+
+    content {
+      name = "datadog-init"
+    }
+  }
 }
 
 locals {
