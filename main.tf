@@ -390,7 +390,7 @@ locals {
         DD_VERSION = split(":", var.application_container.image)[1]
 
         DD_APM_ENABLED = "true"
-        DD_APM_FILTER_TAGS_REJECT = "http.path_group:/health http.request.headers.user-agent:ELB-HealthChecker/2.0"
+        DD_APM_FILTER_TAGS_REJECT = "@http.path_group:/health @http.request.headers.user-agent:ELB-HealthChecker/2.0"
 
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
       },
