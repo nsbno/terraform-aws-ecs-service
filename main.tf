@@ -591,7 +591,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
     for_each = var.datadog_instrumentation_language != null ? [1] : []
 
     content {
-      name = "datadog-init"
+      name = "datadog-instrumentation-init"
     }
   }
 }

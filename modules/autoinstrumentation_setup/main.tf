@@ -38,13 +38,17 @@ locals {
       name  = "datadog-auto-instrumentation-init"
       image = "public.ecr.aws/datadog/dd-lib-js-init:5"
 
+      command = ["pwd; ls -la; cp -r /datadog-init/. /datadog-instrumentation-init; ls -la /datadog-instrumentation-init"]
+
       extra_options = {
+        entrypoint = ["sh", "-c"]
         mountPoints = [
           {
-            sourceVolume  = "datadog-init"
-            containerPath = "/datadog-init"
+            sourceVolume  = "datadog-instrumentation-init"
+            containerPath = "/datadog-instrumentation-init"
           }
         ]
+        user = "root"
       }
     }
   }
@@ -52,13 +56,14 @@ locals {
   auto_instrumentation_for_app_container_injection_extra_options = {
     "js" : {
       environment = {
-        NODE_OPTIONS = "--require /datadog-init/package/node_modules/dd-trace/init"
+        NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
       }
+      # TODO: This could be "base options"
       extra_options = {
         dependsOn = [
           {
             containerName = "datadog-auto-instrumentation-init",
-            condition     = "START"
+            condition     = "SUCCESS"
           }
         ]
         volumesFrom = [
