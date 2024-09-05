@@ -68,8 +68,6 @@ locals {
       environment = {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
 
-        DD_APM_FILTER_TAGS_REJECT = "http.path_group:/health http.request.headers.user-agent:ELB-HealthChecker/2.0"
-
         DD_LOGS_INJECTION = "true"
         DD_PROFILING_ENABLED = "true"
 
