@@ -391,6 +391,8 @@ locals {
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.path_group:/health http.request.headers.user-agent:ELB-HealthChecker/2.0"
+
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
       },
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
