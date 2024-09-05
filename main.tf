@@ -421,6 +421,10 @@ module "autoinstrumentation_setup" {
 
   application_container = var.application_container
   datadog_instrumentation_language = var.datadog_instrumentation_language
+
+  dd_service = var.application_name
+  dd_env     = module.account_metadata.account.environment
+  dd_version = split(":", var.application_container.image)[1]
 }
 
 locals {

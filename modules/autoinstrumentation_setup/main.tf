@@ -29,6 +29,16 @@ variable "datadog_instrumentation_language" {
   nullable    = false
 }
 
+variable "dd_service" {
+  type = string
+}
+variable "dd_env" {
+  type = string
+}
+variable "dd_version" {
+  type = string
+}
+
 
 # Definitions for instrumentation loading
 locals {
@@ -57,6 +67,10 @@ locals {
     "js" : {
       environment = {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
+
+        DD_SERVICE = var.dd_service
+        DD_ENV     = var.dd_env
+        DD_VERSION = var.dd_version
       }
       # TODO: This could be "base options"
       extra_options = {
