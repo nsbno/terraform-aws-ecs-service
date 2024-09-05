@@ -61,9 +61,53 @@ locals {
         user = "root"
       }
     }
+    "jvm" : {
+      name  = "datadog-auto-instrumentation-init"
+      image = "public.ecr.aws/datadog/dd-lib-java-init:1"
+
+      command = ["pwd; ls -la; cp -r /datadog-init/. /datadog-instrumentation-init; ls -la /datadog-instrumentation-init"]
+
+      extra_options = {
+        entrypoint = ["sh", "-c"]
+        mountPoints = [
+          {
+            sourceVolume  = "datadog-instrumentation-init"
+            containerPath = "/datadog-instrumentation-init"
+          }
+        ]
+        user = "root"
+      }
+    }
   }
 
   auto_instrumentation_for_app_container_injection_extra_options = {
+    "jvm": {
+      environment = {
+        JAVA_TOOL_OPTIONS = "-javaagent:/datadog-instrumentation-init/package/dd-java-agent.jar"
+
+        DD_LOGS_INJECTION = "true"
+        DD_PROFILING_ENABLED = "true"
+
+        DD_SERVICE = var.dd_service
+        DD_ENV     = var.dd_env
+        DD_VERSION = var.dd_version
+      }
+      # TODO: This could be "base options"
+      extra_options = {
+        dependsOn = [
+          {
+            containerName = "datadog-auto-instrumentation-init",
+            condition     = "SUCCESS"
+          }
+        ]
+        volumesFrom = [
+          {
+            sourceContainer = "datadog-auto-instrumentation-init"
+            readOnly = true
+          }
+        ]
+      }
+    }
     "js" : {
       environment = {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
