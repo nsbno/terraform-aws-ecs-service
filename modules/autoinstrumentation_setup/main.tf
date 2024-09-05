@@ -69,6 +69,8 @@ locals {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
 
         DD_APM_FILTER_TAGS_REJECT = "http.url_details.path:/health"
+        DD_LOGS_INJECTION = "true"
+        DD_PROFILING_ENABLED = "true"
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
