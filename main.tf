@@ -391,6 +391,8 @@ locals {
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
+        # Reject anything ending in /health
+        DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
 
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
       },

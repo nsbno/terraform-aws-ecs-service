@@ -88,6 +88,9 @@ locals {
         DD_LOGS_INJECTION = "true"
         DD_PROFILING_ENABLED = "true"
 
+        # Remove "java-aws-sdk" and make it the same name as DD_SERVICE
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
+
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
         DD_VERSION = var.dd_version
