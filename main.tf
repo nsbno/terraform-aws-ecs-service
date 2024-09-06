@@ -584,6 +584,11 @@ resource "aws_ecs_task_definition" "task_datadog" {
       cpu               = container.cpu
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
+      dockerLabels = {
+        "com.datadoghq.tags.service" = var.application_name
+        "com.datadoghq.tags.env" = module.account_metadata.account.environment
+        "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
+      }
     }, container.extra_options)
   ])
 
