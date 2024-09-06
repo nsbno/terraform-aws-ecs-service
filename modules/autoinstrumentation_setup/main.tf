@@ -90,6 +90,8 @@ locals {
 
         # Remove "java-aws-sdk" and make it the same name as DD_SERVICE
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
+        # Make sure AWS Services are split out in the service map
+        DD_TRACE_SPLIT_BY_TAGS = "aws.service"
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
