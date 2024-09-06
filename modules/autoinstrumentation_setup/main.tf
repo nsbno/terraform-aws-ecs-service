@@ -98,6 +98,7 @@ locals {
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
         DD_VERSION = var.dd_version
+        DD_TAGS    = "team:personnel"
       }
       # TODO: This could be "base options"
       extra_options = {
