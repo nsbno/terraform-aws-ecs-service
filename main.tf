@@ -570,7 +570,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
-          dd_tags    = "${var.application_name}:fluentbit",
+          dd_tags    = "env:${module.account_metadata.account.environment} version:${split(":", var.application_container.image)[1]}",
         }
         secretOptions = [
           {
