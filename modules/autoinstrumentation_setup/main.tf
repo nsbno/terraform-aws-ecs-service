@@ -93,6 +93,10 @@ locals {
         # Make sure AWS Services are split out in the service map
         DD_TRACE_SPLIT_BY_TAGS = "aws.service"
 
+        # Allow for dynamic instrumentation
+        DD_DYNAMIC_INSTRUMENTATION_ENABLED = true
+        DD_SYMBOL_DATABASE_UPLOAD_ENABLED  = true
+
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
         DD_VERSION = var.dd_version
