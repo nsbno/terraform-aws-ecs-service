@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 locals {
-  name_prefix = "infrademo"
+  name_prefix      = "infrademo"
   application_name = "my-webapp"
 }
 
@@ -30,15 +30,15 @@ module "service" {
   launch_type = "EXTERNAL"
 
   application_container = {
-    name = "main"
-    image = "nginx:latest"
-    port = 80
+    name     = "main"
+    image    = "nginx:latest"
+    port     = 80
     protocol = "HTTP"
   }
 
   placement_constraints = [
     {
-      type = "memberOf"
+      type       = "memberOf"
       expression = "attribute:your_custom_attribute in [your_first_value, your_second_value]"
     }
   ]

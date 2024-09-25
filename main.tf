@@ -631,7 +631,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
           content {
             label = metrics.value.label
             id    = metrics.value.id
-            dynamic metric_stat {
+            dynamic "metric_stat" {
               for_each = metrics.value.metric_stat[*]
               content {
                 metric {
@@ -648,7 +648,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
                 stat = metric_stat.value.stat
               }
             }
-            expression = metrics.value.expression
+            expression  = metrics.value.expression
             return_data = metrics.value.return_data
           }
         }

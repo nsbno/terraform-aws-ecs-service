@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 locals {
-  name_prefix = "infrademo"
+  name_prefix      = "infrademo"
   application_name = "my-webapp"
 }
 
@@ -19,7 +19,7 @@ data "aws_vpc" "main" {
 
 data "aws_subnets" "private" {
   filter {
-    name = "vpc-id"
+    name   = "vpc-id"
     values = [data.aws_vpc.main.id]
   }
 
@@ -38,7 +38,7 @@ data "aws_lb" "main" {
 
 data "aws_lb_listener" "http" {
   load_balancer_arn = data.aws_lb.main.arn
-  port = 80
+  port              = 80
 }
 
 /*
@@ -50,9 +50,9 @@ module "service" {
 
   application_name = local.application_name
 
-  vpc_id                   = data.aws_vpc.main.id
-  private_subnet_ids       = data.aws_subnets.private.ids
-  cluster_id               = data.aws_ecs_cluster.main.id
+  vpc_id             = data.aws_vpc.main.id
+  private_subnet_ids = data.aws_subnets.private.ids
+  cluster_id         = data.aws_ecs_cluster.main.id
 
   application_container = {
     name     = "main"
