@@ -487,6 +487,16 @@ resource "aws_ecs_service" "service" {
     }
   }
 
+  # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
+  dynamic "placement_constraints" {
+    for_each = var.launch_type != "FARGATE" ? var.placement_constraints : []
+
+    content {
+      type       = placement_constraints.value.type
+      expression = placement_constraints.value.expression
+    }
+  }
+
   timeouts {
     create = var.ecs_service_timeouts.create
     update = var.ecs_service_timeouts.update
@@ -541,6 +551,16 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     content {
       capacity_provider = capacity_provider_strategy.value.capacity_provider
       weight            = capacity_provider_strategy.value.weight
+    }
+  }
+
+  # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
+  dynamic "placement_constraints" {
+    for_each = var.launch_type != "FARGATE" ? var.placement_constraints : []
+
+    content {
+      type       = placement_constraints.value.type
+      expression = placement_constraints.value.expression
     }
   }
 

@@ -35,4 +35,11 @@ module "service" {
     port = 80
     protocol = "HTTP"
   }
+
+  placement_constraints = [
+    {
+      type = "memberOf"
+      expression = "attribute:your_custom_attribute in [your_first_value, your_second_value]"
+    }
+  ]
 }

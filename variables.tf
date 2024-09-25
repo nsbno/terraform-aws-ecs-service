@@ -90,6 +90,15 @@ variable "lb_listeners" {
   default = []
 }
 
+variable "placement_constraints" {
+  description = "Placement constraints for the service. Note: A maximum of 10 placement constraints may be added to a service. Used to force deployment to specific instances. Not valid for FARGATE launch type."
+  type        = list(object({
+    type       = string
+    expression = optional(string)
+  }))
+  default     = []
+}
+
 variable "lb_deregistration_delay" {
   description = "The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused."
   type        = number
