@@ -97,6 +97,16 @@ variable "placement_constraints" {
     expression = optional(string)
   }))
   default = []
+
+  validation {
+    condition     = length(var.placement_constraints) <= 10
+    error_message = "A maximum of 10 placement constraints may be added to a service."
+  }
+
+  validation {
+    condition     = length(var.placement_constraints) == 0 || var.launch_type != "FARGATE"
+    error_message = "Placement constraints are not valid for launch_type FARGATE"
+  }
 }
 
 variable "lb_deregistration_delay" {
