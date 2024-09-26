@@ -489,7 +489,7 @@ resource "aws_ecs_service" "service" {
 
   # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
   dynamic "placement_constraints" {
-    for_each = var.launch_type != "FARGATE" ? var.placement_constraints : []
+    for_each = var.placement_constraints
 
     content {
       type       = placement_constraints.value.type
@@ -501,6 +501,13 @@ resource "aws_ecs_service" "service" {
     create = var.ecs_service_timeouts.create
     update = var.ecs_service_timeouts.update
     delete = var.ecs_service_timeouts.delete
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
+      error_message = "Placement constraints are not valid for FARGATE launch type"
+    }
   }
 }
 
@@ -556,7 +563,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
   dynamic "placement_constraints" {
-    for_each = var.launch_type != "FARGATE" ? var.placement_constraints : []
+    for_each = var.placement_constraints
 
     content {
       type       = placement_constraints.value.type
@@ -567,6 +574,11 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   lifecycle {
     ignore_changes = [desired_count]
+
+    precondition {
+      condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
+      error_message = "Placement constraints are not valid for FARGATE launch type"
+    }
   }
 
   timeouts {
