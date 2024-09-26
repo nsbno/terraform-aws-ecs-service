@@ -556,7 +556,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
   dynamic "placement_constraints" {
-    for_each = var.launch_type != "FARGATE" ? var.placement_constraints : []
+    for_each = var.placement_constraints
 
     content {
       type       = placement_constraints.value.type
