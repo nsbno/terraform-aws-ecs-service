@@ -21,7 +21,7 @@ data "aws_vpc" "main" {
 data "aws_subnets" "private" {
   #  Reference your existing subnets which usually is created centrally in -aws repo
   filter {
-    name = "vpc-id"
+    name   = "vpc-id"
     values = [data.aws_vpc.main.id]
   }
 
@@ -69,7 +69,7 @@ module "service" {
   lb_listeners = [{
     listener_arn      = data.aws_lb_listener.http.arn
     security_group_id = one(data.aws_lb.main.security_groups)
-    conditions        = [{
+    conditions = [{
       path_pattern = "/${local.application_name}/*"
     }]
   }]
@@ -82,7 +82,7 @@ module "service" {
   }
 
   autoscaling_schedule = {
-    timezone  = "Europe/Oslo"
+    timezone = "Europe/Oslo"
     # Increase capacity in weekdays
     schedules = [
       {

@@ -71,7 +71,7 @@ module "service" {
     {
       listener_arn      = data.aws_lb_listener.http.arn
       security_group_id = one(data.aws_lb.main.security_groups)
-      conditions        = [
+      conditions = [
         {
           path_pattern = "/${local.application_name}/*"
         }
@@ -94,7 +94,7 @@ module "service" {
         metric = {
           metric_name = "ApproximateNumberOfMessagesVisible"
           namespace   = "AWS/SQS"
-          dimensions  = [
+          dimensions = [
             {
               name  = "QueueName"
               value = "my-queue"

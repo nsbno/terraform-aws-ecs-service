@@ -105,6 +105,11 @@ Both use the same format, but `application_container` will automatically be set 
 |Configure any other options for container definitions
 |no
 |None (Though log_configuration is automatically configured for CloudWatch)
+
+|`placement_constraints`
+|A list of placement constraints for the service. Not valid for FARGATE launch_type. SEE: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html and https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#placement_constraints
+|no
+|[]
 |===
 
 

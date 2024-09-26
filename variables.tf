@@ -90,6 +90,15 @@ variable "lb_listeners" {
   default = []
 }
 
+variable "placement_constraints" {
+  description = "Placement constraints for the service. Note: A maximum of 10 placement constraints may be added to a service. Used to force deployment to specific instances. Not valid for FARGATE launch type."
+  type = list(object({
+    type       = string
+    expression = optional(string)
+  }))
+  default = []
+}
+
 variable "lb_deregistration_delay" {
   description = "The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused."
   type        = number
@@ -237,9 +246,9 @@ variable "xray_daemon_config_path" {
 variable "custom_metrics" {
   description = "The custom metrics for autoscaling. Check https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy#create-target-tracking-scaling-policy-using-metric-math for more information."
   type = list(object({
-    label = string
-    id    = string
-    expression  = optional(string)
+    label      = string
+    id         = string
+    expression = optional(string)
     metric_stat = optional(object({
       metric = object({
         metric_name = string
