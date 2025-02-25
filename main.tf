@@ -348,10 +348,6 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
-module "account_metadata" {
-  source = "github.com/nsbno/terraform-aws-account-metadata?ref=0.1.1"
-}
-
 /*
  * = ECS Service
  *
@@ -360,6 +356,8 @@ module "account_metadata" {
 data "aws_secretsmanager_secret" "datadog_agent_api_key" {
   arn = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
 }
+
+data "aws_iam_account_alias" "this" {}
 
 locals {
   xray_container = var.xray_daemon == true ? [
@@ -374,6 +372,11 @@ locals {
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
+  # The account alias includes the name of the environment we are in as a suffix
+  split_alias = split("-", data.aws_iam_account_alias.this.account_alias)
+  environment_index = length(local.split_alias) - 1
+  environment  = local.split_alias[local.environment_index]
+
   datadog_containers = var.datadog == true ? [
     {
       name      = "datadog-agent",
@@ -386,9 +389,9 @@ locals {
         DD_SITE = "datadoghq.eu"
 
         DD_SERVICE = var.application_name
-        DD_ENV     = module.account_metadata.account.environment
+        DD_ENV     = local.environment
         DD_VERSION = split(":", var.application_container.image)[1]
-        DD_TAGS    = "team:personnel"
+        DD_TAGS    = "team:${var.team_name}"
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
@@ -429,7 +432,7 @@ module "autoinstrumentation_setup" {
   datadog_instrumentation_language = var.datadog_instrumentation_language
 
   dd_service = var.application_name
-  dd_env     = module.account_metadata.account.environment
+  dd_env     = local.environment
   dd_version = split(":", var.application_container.image)[1]
 }
 
@@ -571,7 +574,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
-          dd_tags    = "env:${module.account_metadata.account.environment},version:${split(":", var.application_container.image)[1]},team:personnel",
+          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]},team:${var.team_name}",
         }
         secretOptions = [
           {
@@ -587,9 +590,9 @@ resource "aws_ecs_task_definition" "task_datadog" {
       memoryReservation = container.memory_soft_limit
       dockerLabels = {
         "com.datadoghq.tags.service" = var.application_name
-        "com.datadoghq.tags.env" = module.account_metadata.account.environment
+        "com.datadoghq.tags.env" = local.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
-        "com.datadoghq.tags.team" = "personnel"
+        "com.datadoghq.tags.team" = var.team_name
       }
     }, container.extra_options)
   ])

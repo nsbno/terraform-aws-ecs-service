@@ -16,7 +16,7 @@ variable "cluster_id" {
 
 variable "application_container" {
   description = "The application that is being run by the service"
-  type        = object({
+  type = object({
     name  = string
     image = string
     essential = optional(bool, true)
@@ -29,9 +29,9 @@ variable "application_container" {
     memory_hard_limit = optional(number)
     memory_soft_limit = optional(number)
 
-    port              = number
-    protocol          = string,
-    network_protocol  = optional(string, "tcp")
+    port     = number
+    protocol = string,
+    network_protocol = optional(string, "tcp")
 
     health_check = optional(any)
 
@@ -41,28 +41,28 @@ variable "application_container" {
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
-  type        = list(object({
-      name  = string
-      image = string
-      essential = optional(bool, true)
-      command = optional(string)
+  type = list(object({
+    name  = string
+    image = string
+    essential = optional(bool, true)
+    command = optional(string)
 
-      environment = optional(map(string))
-      secrets = optional(map(string))
+    environment = optional(map(string))
+    secrets = optional(map(string))
 
-      cpu = optional(number)
-      memory_hard_limit = optional(number)
-      memory_soft_limit = optional(number)
+    cpu = optional(number)
+    memory_hard_limit = optional(number)
+    memory_soft_limit = optional(number)
 
-      port              = optional(number)
-      protocol          = optional(string)
-      network_protocol  = optional(string, "tcp")
+    port = optional(number)
+    protocol = optional(string)
+    network_protocol = optional(string, "tcp")
 
-      health_check = optional(any)
+    health_check = optional(any)
 
-      extra_options = optional(any)
+    extra_options = optional(any)
   }))
-  default     = []
+  default = []
 }
 
 variable "launch_type" {
@@ -71,7 +71,7 @@ variable "launch_type" {
   default     = "FARGATE"
 
   validation {
-    condition     = contains(["EC2", "FARGATE", "EXTERNAL"], var.launch_type)
+    condition = contains(["EC2", "FARGATE", "EXTERNAL"], var.launch_type)
     error_message = "The launch_type must be either \"EC2\", \"FARGATE\" or \"EXTERNAL\"."
   }
 }
@@ -120,9 +120,9 @@ variable "lb_listeners" {
 
     conditions = list(object({
       path_pattern = optional(string)
-      host_header  = optional(any)
+      host_header = optional(any)
       http_header = optional(object({
-        name   = string
+        name = string
         values = list(string)
       }))
     }))
@@ -139,12 +139,12 @@ variable "lb_deregistration_delay" {
 variable "lb_health_check" {
   description = "Health checks to verify that the container is running properly"
   type        = any
-  default     = {}
+  default = {}
 }
 
 variable "private_subnet_ids" {
   description = "A list of private subnets inside the VPC"
-  type        = list(string)
+  type = list(string)
   default     = null
 }
 
@@ -157,11 +157,11 @@ variable "desired_count" {
 variable "autoscaling" {
   description = "Enable autoscaling for the service"
   type = object({
-    min_capacity       = number
-    max_capacity       = number
-    metric_type        = string
-    target_value       = string
-    scale_in_cooldown  = optional(number, null) # in seconds
+    min_capacity = number
+    max_capacity = number
+    metric_type  = string
+    target_value = string
+    scale_in_cooldown = optional(number, null) # in seconds
     scale_out_cooldown = optional(number, null) # in seconds
   })
   default = null
@@ -197,7 +197,7 @@ variable "autoscaling_schedule" {
     }))
   })
   default = {
-    timezone  = "Europe/Oslo"
+    timezone = "Europe/Oslo"
     schedules = []
   }
 }
@@ -222,8 +222,8 @@ variable "health_check_grace_period_seconds" {
 
 variable "tags" {
   description = "A map of tags (key-value pairs) passed to resources."
-  type        = map(string)
-  default     = {}
+  type = map(string)
+  default = {}
 }
 
 variable "propagate_tags" {
@@ -274,6 +274,12 @@ variable "datadog_instrumentation_language" {
   default     = null
 }
 
+variable "team_name" {
+  description = "The team that owns the service"
+  type        = string
+  default     = null
+}
+
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool
@@ -291,7 +297,7 @@ variable "custom_metrics" {
   type = list(object({
     label = string
     id    = string
-    expression  = optional(string)
+    expression = optional(string)
     metric_stat = optional(object({
       metric = object({
         metric_name = string
@@ -312,10 +318,10 @@ variable "lb_stickiness" {
   description = "Bind a user's session to a specific target"
   nullable    = false
   type = object({
-    type            = string
-    enabled         = optional(bool, null)
+    type = string
+    enabled = optional(bool, null)
     cookie_duration = optional(number, null)
-    cookie_name     = optional(string, null)
+    cookie_name = optional(string, null)
   })
   default = {
     type            = "lb_cookie"
