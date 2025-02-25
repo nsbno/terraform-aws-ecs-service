@@ -391,7 +391,7 @@ locals {
         DD_SERVICE = var.application_name
         DD_ENV     = local.environment
         DD_VERSION = split(":", var.application_container.image)[1]
-        DD_TAGS    = "team:${var.team_name}"
+        DD_TAGS    = "team:${var.datadog_team_name}"
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
@@ -574,7 +574,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
-          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]},team:${var.team_name}",
+          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]},team:${var.datadog_team_name}",
         }
         secretOptions = [
           {
@@ -592,7 +592,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
         "com.datadoghq.tags.service" = var.application_name
         "com.datadoghq.tags.env" = local.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
-        "com.datadoghq.tags.team" = var.team_name
+        "com.datadoghq.tags.team" = var.datadog_team_name
       }
     }, container.extra_options)
   ])

@@ -274,10 +274,10 @@ variable "datadog_instrumentation_language" {
   default     = null
 }
 
-variable "team_name" {
+variable "datadog_team_name" {
   description = "The team that owns the service"
   type        = string
-  default     = null
+  default     = "none"
 }
 
 variable "xray_daemon" {
