@@ -274,12 +274,6 @@ variable "datadog_instrumentation_language" {
   default     = null
 }
 
-variable "datadog_team_name" {
-  description = "The team that owns the service"
-  type        = string
-  default     = "none"
-}
-
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool
