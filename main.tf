@@ -399,6 +399,8 @@ locals {
         DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
 
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
+
+        DD_ECS_TASK_COLLECTION_ENABLED = "true"
       },
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
