@@ -498,8 +498,8 @@ resource "aws_ecs_service" "service" {
   }
 
   deployment_circuit_breaker {
-      enable   = var.rollback_on_failure
-      rollback = var.rollback_on_failure
+    enable   = var.rollback_on_failure
+    rollback = var.rollback_on_failure
   }
 
   timeouts {
@@ -576,12 +576,9 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     }
   }
 
-  dynamic "deployment_circuit_breaker" {
-    for_each = var.rollback_on_failure ? [1] : []
-    content {
-      enable   = true
-      rollback = true
-    }
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
 
   lifecycle {
