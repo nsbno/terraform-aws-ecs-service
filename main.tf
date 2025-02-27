@@ -577,8 +577,8 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   }
 
   deployment_circuit_breaker {
-    enable   = true
-    rollback = true
+    enable   = var.rollback_on_failure
+    rollback = var.rollback_on_failure
   }
 
   lifecycle {
