@@ -497,6 +497,14 @@ resource "aws_ecs_service" "service" {
     }
   }
 
+  dynamic "deployment_circuit_breaker" {
+    for_each = var.rollback_on_failure ? [1] : []
+    content {
+      enable   = true
+      rollback = true
+    }
+  }
+
   timeouts {
     create = var.ecs_service_timeouts.create
     update = var.ecs_service_timeouts.update
@@ -571,6 +579,13 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     }
   }
 
+  dynamic "deployment_circuit_breaker" {
+    for_each = var.rollback_on_failure ? [1] : []
+    content {
+      enable   = true
+      rollback = true
+    }
+  }
 
   lifecycle {
     ignore_changes = [desired_count]
