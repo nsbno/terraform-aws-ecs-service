@@ -313,16 +313,14 @@ variable "lb_stickiness" {
 }
 
 # DATADOG SETUP
-variable "datadog" {
-  # TODO: Rename to enable_datadog
-  description = "Should a Datadog agent be attached to the service?"
+variable "enable_datadog" {
+  description = "Enable Datadog for the service"
   type        = bool
   default     = false
 }
 
-variable "datadog_instrumentation_language" {
-  # TODO: rename to datadog_instrumentation_runtime
-  description = "Should we autoinstrument the service?"
+variable "datadog_instrumentation_runtime" {
+  description = "Runtime for autoinstrumentation. Valid values: `node` or `jvm`"
   type        = string
   default     = null
 }

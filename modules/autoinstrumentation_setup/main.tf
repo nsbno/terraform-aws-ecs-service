@@ -44,7 +44,7 @@ variable "dd_version" {
 locals {
   # This is an extra container with the required libs
   init_container = var.datadog_instrumentation_language == null ? {} : {
-    "js" : {
+    "node" : {
       name  = "datadog-auto-instrumentation-init"
       image = "public.ecr.aws/datadog/dd-lib-js-init:5"
 
@@ -116,7 +116,7 @@ locals {
         ]
       }
     }
-    "js" : {
+    "node" : {
       environment = {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
 

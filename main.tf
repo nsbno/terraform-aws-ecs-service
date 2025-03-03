@@ -354,7 +354,7 @@ resource "aws_lb_listener_rule" "service" {
  * This is what users are here for
  */
 data "aws_ssm_parameter" "team_name" {
-  count = var.datadog ? 1 : 0
+  count = var.enable_datadog ? 1 : 0
 
   name = "/__platform__/team_name_handle"
 }
@@ -375,8 +375,8 @@ locals {
     }
   ] : []
 
-  team_name              = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
-  team_name_tag          = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
+  team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
+  team_name_tag          = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
@@ -385,7 +385,7 @@ locals {
   environment_index = length(local.split_alias) - 1
   environment       = local.split_alias[local.environment_index]
 
-  datadog_containers = var.datadog == true ? [
+  datadog_containers = var.enable_datadog == true ? [
     {
       name      = "datadog-agent",
       image     = "public.ecr.aws/datadog/agent:latest",
@@ -436,10 +436,10 @@ locals {
 module "autoinstrumentation_setup" {
   source = "./modules/autoinstrumentation_setup"
 
-  count = var.datadog_instrumentation_language == null ? 0 : 1
+  count = var.datadog_instrumentation_runtime == null ? 0 : 1
 
   application_container            = var.application_container
-  datadog_instrumentation_language = var.datadog_instrumentation_language
+  datadog_instrumentation_language = var.datadog_instrumentation_runtime
 
   dd_service = var.application_name
   dd_env     = local.environment
@@ -447,8 +447,8 @@ module "autoinstrumentation_setup" {
 }
 
 locals {
-  application_container = var.datadog_instrumentation_language == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
-  init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
+  application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
+  init_container        = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
     for container in flatten([
@@ -494,7 +494,7 @@ data "aws_region" "current" {}
 # or a Datadog logger.
 
 resource "aws_ecs_task_definition" "task" {
-  count = var.datadog == true ? 0 : 1
+  count = var.enable_datadog == true ? 0 : 1
 
   family = var.application_name
   container_definitions = jsonencode([
@@ -550,7 +550,7 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 resource "aws_ecs_task_definition" "task_datadog" {
-  count = var.datadog == true ? 1 : 0
+  count = var.enable_datadog == true ? 1 : 0
 
   family = var.application_name
 
@@ -624,7 +624,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 
   dynamic "volume" {
-    for_each = var.datadog_instrumentation_language != null ? [1] : []
+    for_each = var.datadog_instrumentation_runtime != null ? [1] : []
 
     content {
       configure_at_launch = false
@@ -634,7 +634,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
 }
 
 locals {
-  task_definition = var.datadog == true ? aws_ecs_task_definition.task_datadog[0] : aws_ecs_task_definition.task[0]
+  task_definition = var.enable_datadog == true ? aws_ecs_task_definition.task_datadog[0] : aws_ecs_task_definition.task[0]
 }
 
 # == End of hack ==
