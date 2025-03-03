@@ -262,18 +262,6 @@ variable "wait_for_steady_state" {
   default     = false
 }
 
-variable "datadog" {
-  description = "Should a Datadog agent be attached to the service?"
-  type        = bool
-  default     = false
-}
-
-variable "datadog_instrumentation_language" {
-  description = "Should we autoinstrument the service?"
-  type        = string
-  default     = null
-}
-
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool
@@ -322,4 +310,19 @@ variable "lb_stickiness" {
     enabled         = false
     cookie_duration = 86400 # 24h in seconds
   }
+}
+
+# DATADOG SETUP
+variable "datadog" {
+  # TODO: Rename to enable_datadog
+  description = "Should a Datadog agent be attached to the service?"
+  type        = bool
+  default     = false
+}
+
+variable "datadog_instrumentation_language" {
+  # TODO: rename to datadog_instrumentation_runtime
+  description = "Should we autoinstrument the service?"
+  type        = string
+  default     = null
 }

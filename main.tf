@@ -354,6 +354,8 @@ resource "aws_lb_listener_rule" "service" {
  * This is what users are here for
  */
 data "aws_ssm_parameter" "team_name" {
+  count = var.datadog ? 1 : 0
+
   name = "/__platform__/team_name_handle"
 }
 
@@ -373,6 +375,8 @@ locals {
     }
   ] : []
 
+  team_name = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
+  team_name_tag = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
@@ -395,7 +399,7 @@ locals {
         DD_SERVICE = var.application_name
         DD_ENV     = local.environment
         DD_VERSION = split(":", var.application_container.image)[1]
-        DD_TAGS    = "team:${data.aws_ssm_parameter.team_name.value}"
+        DD_TAGS    = local.team_name_tag
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
@@ -425,7 +429,7 @@ locals {
           }
         }
       }
-    },
+    }
   ] : null
 }
 
@@ -447,7 +451,14 @@ locals {
   init_container        = var.datadog_instrumentation_language == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
-    for container in concat([local.application_container], var.sidecar_containers, local.xray_container, local.datadog_containers, local.init_container) : {
+    for container in flatten([
+    [local.application_container],
+    var.sidecar_containers,
+    local.xray_container,
+    # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
+    local.datadog_containers != null ? local.datadog_containers : [null, null],
+    local.init_container
+  ]) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)
@@ -463,7 +474,7 @@ locals {
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
       extra_options     = try(container.extra_options, {})
-    }
+    } if container != null
   ]
 
   capacity_provider_strategy = {
@@ -580,7 +591,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
-          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]},team:${data.aws_ssm_parameter.team_name.value}",
+          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]}${try(local.team_name_tag, "")}",
         }
         secretOptions = [
           {
@@ -598,7 +609,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
         "com.datadoghq.tags.service" = var.application_name
         "com.datadoghq.tags.env" = local.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
-        "com.datadoghq.tags.team" = data.aws_ssm_parameter.team_name.value
+        "com.datadoghq.tags.team" = local.team_name
       }
     }, container.extra_options)
   ])
