@@ -370,20 +370,20 @@ locals {
     {
       name      = "aws-otel-collector",
       image     = "amazon/aws-otel-collector",
-      command = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
+      command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
       essential = true
     }
   ] : []
 
-  team_name = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
-  team_name_tag = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
+  team_name              = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
+  team_name_tag          = var.datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   # The account alias includes the name of the environment we are in as a suffix
-  split_alias = split("-", data.aws_iam_account_alias.this.account_alias)
+  split_alias       = split("-", data.aws_iam_account_alias.this.account_alias)
   environment_index = length(local.split_alias) - 1
-  environment  = local.split_alias[local.environment_index]
+  environment       = local.split_alias[local.environment_index]
 
   datadog_containers = var.datadog == true ? [
     {
@@ -401,7 +401,7 @@ locals {
         DD_VERSION = split(":", var.application_container.image)[1]
         DD_TAGS    = local.team_name_tag
 
-        DD_APM_ENABLED = "true"
+        DD_APM_ENABLED            = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
         # Reject anything ending in /health
         DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
@@ -438,7 +438,7 @@ module "autoinstrumentation_setup" {
 
   count = var.datadog_instrumentation_language == null ? 0 : 1
 
-  application_container = var.application_container
+  application_container            = var.application_container
   datadog_instrumentation_language = var.datadog_instrumentation_language
 
   dd_service = var.application_name
@@ -452,13 +452,13 @@ locals {
 
   containers = [
     for container in flatten([
-    [local.application_container],
-    var.sidecar_containers,
-    local.xray_container,
-    # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
-    local.datadog_containers != null ? local.datadog_containers : [null, null],
-    local.init_container
-  ]) : {
+      [local.application_container],
+      var.sidecar_containers,
+      local.xray_container,
+      # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
+      local.datadog_containers != null ? local.datadog_containers : [null, null],
+      local.init_container
+      ]) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)
@@ -607,9 +607,9 @@ resource "aws_ecs_task_definition" "task_datadog" {
       memoryReservation = container.memory_soft_limit
       dockerLabels = {
         "com.datadoghq.tags.service" = var.application_name
-        "com.datadoghq.tags.env" = local.environment
+        "com.datadoghq.tags.env"     = local.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
-        "com.datadoghq.tags.team" = local.team_name
+        "com.datadoghq.tags.team"    = local.team_name
       }
     }, container.extra_options)
   ])
@@ -628,7 +628,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
 
     content {
       configure_at_launch = false
-      name = "datadog-instrumentation-init"
+      name                = "datadog-instrumentation-init"
     }
   }
 }
@@ -830,7 +830,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
           content {
             label = metrics.value.label
             id    = metrics.value.id
-            dynamic metric_stat {
+            dynamic "metric_stat" {
               for_each = metrics.value.metric_stat[*]
               content {
                 metric {
@@ -847,7 +847,7 @@ resource "aws_appautoscaling_policy" "ecs_service" {
                 stat = metric_stat.value.stat
               }
             }
-            expression = metrics.value.expression
+            expression  = metrics.value.expression
             return_data = metrics.value.return_data
           }
         }
