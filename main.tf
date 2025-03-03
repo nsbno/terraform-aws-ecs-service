@@ -627,6 +627,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
     for_each = var.datadog_instrumentation_language != null ? [1] : []
 
     content {
+      configure_at_launch = false
       name = "datadog-instrumentation-init"
     }
   }
