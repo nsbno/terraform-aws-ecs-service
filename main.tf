@@ -376,7 +376,7 @@ locals {
   ] : []
 
   team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
-  team_name_tag          = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? format("team:%s", data.aws_ssm_parameter.team_name[0].value) : null
+  team_name_tag          = local.team_name != null ? format("team:%s", local.team_name) : null
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
@@ -404,11 +404,9 @@ locals {
         DD_APM_ENABLED            = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
         # Reject anything ending in /health
-        DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
-
+        DD_APM_FILTER_TAGS_REGEX_REJECT                   = "http.url:.*\\/health$"
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
-
-        DD_ECS_TASK_COLLECTION_ENABLED = "true"
+        DD_ECS_TASK_COLLECTION_ENABLED                    = "true"
       },
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
@@ -438,12 +436,13 @@ module "autoinstrumentation_setup" {
 
   count = var.datadog_instrumentation_runtime == null ? 0 : 1
 
-  application_container            = var.application_container
-  datadog_instrumentation_language = var.datadog_instrumentation_runtime
+  application_container           = var.application_container
+  datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
 
-  dd_service = var.application_name
-  dd_env     = local.environment
-  dd_version = split(":", var.application_container.image)[1]
+  dd_service  = var.application_name
+  dd_env      = local.environment
+  dd_version  = split(":", var.application_container.image)[1]
+  dd_team_tag = local.team_name_tag
 }
 
 locals {
