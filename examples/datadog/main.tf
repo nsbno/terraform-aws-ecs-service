@@ -1,7 +1,3 @@
-provider "aws" {
-  region = "eu-west-1"
-}
-
 locals {
   name_prefix      = "infrademo"
   application_name = "my-webapp"
