@@ -1,0 +1,5 @@
+= Datadog
+
+This example shows a service with Datadog and autoinstrumentation enabled.
+
+For more information check out the link:https://vygruppen.atlassian.net/wiki/x/CoAH2QE[Confluence Page]

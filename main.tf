@@ -58,6 +58,30 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       "logs:PutLogEvents",
     ]
   }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [
+      local.datadog_api_key_secret
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "kms:Decrypt"
+    ]
+
+    resources = [
+      local.datadog_api_key_kms
+    ]
+  }
 }
 
 /*
@@ -329,6 +353,18 @@ resource "aws_lb_listener_rule" "service" {
  *
  * This is what users are here for
  */
+data "aws_ssm_parameter" "team_name" {
+  count = var.enable_datadog ? 1 : 0
+
+  name = "/__platform__/team_name_handle"
+}
+
+data "aws_secretsmanager_secret" "datadog_agent_api_key" {
+  arn = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
+}
+
+data "aws_iam_account_alias" "this" {}
+
 locals {
   xray_container = var.xray_daemon == true ? [
     {
@@ -339,8 +375,89 @@ locals {
     }
   ] : []
 
+  team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
+  team_name_tag          = local.team_name != null ? format("team:%s", local.team_name) : null
+  datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
+  datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
+
+  # The account alias includes the name of the environment we are in as a suffix
+  split_alias       = split("-", data.aws_iam_account_alias.this.account_alias)
+  environment_index = length(local.split_alias) - 1
+  environment       = local.split_alias[local.environment_index]
+
+  datadog_containers = var.enable_datadog == true ? [
+    {
+      name      = "datadog-agent",
+      image     = "public.ecr.aws/datadog/agent:latest",
+      essential = true,
+
+      environment = {
+        ECS_FARGATE = "true"
+
+        DD_SITE = "datadoghq.eu"
+
+        DD_SERVICE = var.application_name
+        DD_ENV     = local.environment
+        DD_VERSION = split(":", var.application_container.image)[1]
+        DD_TAGS    = local.team_name_tag
+
+        DD_APM_ENABLED            = "true"
+        DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
+        # Reject anything ending in /health
+        DD_APM_FILTER_TAGS_REGEX_REJECT                   = "http.url:.*\\/health$"
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
+        DD_ECS_TASK_COLLECTION_ENABLED                    = "true"
+      },
+      secrets = {
+        DD_API_KEY = local.datadog_api_key_secret
+      }
+    },
+    {
+      name      = "log-router",
+      image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
+      essential = true,
+
+      extra_options = {
+        firelensConfiguration = {
+          type = "fluentbit",
+          options = {
+            enable-ecs-log-metadata = "true",
+            config-file-type        = "file",
+            config-file-value       = "/fluent-bit/configs/parse-json.conf"
+          }
+        }
+      }
+    }
+  ] : null
+}
+
+module "autoinstrumentation_setup" {
+  source = "./modules/autoinstrumentation_setup"
+
+  count = var.datadog_instrumentation_runtime == null ? 0 : 1
+
+  application_container           = var.application_container
+  datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
+
+  dd_service  = var.application_name
+  dd_env      = local.environment
+  dd_version  = split(":", var.application_container.image)[1]
+  dd_team_tag = local.team_name_tag
+}
+
+locals {
+  application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
+  init_container        = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
+
   containers = [
-    for container in concat([var.application_container], var.sidecar_containers, local.xray_container) : {
+    for container in flatten([
+      [local.application_container],
+      var.sidecar_containers,
+      local.xray_container,
+      # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
+      local.datadog_containers != null ? local.datadog_containers : [null, null],
+      local.init_container
+      ]) : {
       name    = container.name
       image   = container.image
       command = try(container.command, null)
@@ -356,8 +473,9 @@ locals {
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
       extra_options     = try(container.extra_options, {})
-    }
+    } if container != null
   ]
+
   capacity_provider_strategy = {
     capacity_provider = "FARGATE_SPOT"
     weight            = 1
@@ -366,7 +484,17 @@ locals {
 
 data "aws_region" "current" {}
 
+# == Hack for terraform invisible strong typing
+#
+# This is a workaround for the fact that a variable can't have a ternary
+# that returns two objects where the keys are different.
+#
+# To work around this we conditionally create a task with an AWS logger
+# or a Datadog logger.
+
 resource "aws_ecs_task_definition" "task" {
+  count = var.enable_datadog == true ? 0 : 1
+
   family = var.application_name
   container_definitions = jsonencode([
     for container in local.containers : merge({
@@ -420,6 +548,96 @@ resource "aws_ecs_task_definition" "task" {
   network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
 }
 
+resource "aws_ecs_task_definition" "task_datadog" {
+  count = var.enable_datadog == true ? 1 : 0
+
+  family = var.application_name
+
+  container_definitions = jsonencode([
+    for container in local.containers : merge({
+      name    = container.name
+      image   = container.image
+      command = container.command
+      # Only the application container is essential
+      # Container names have to be unique, so this is guaranteed to be correct.
+      essential = container.essential
+      environment = [
+        for key, value in container.environment : {
+          name  = key
+          value = value
+        }
+      ]
+      secrets = [
+        for key, value in container.secrets : {
+          name      = key
+          valueFrom = value
+        }
+      ]
+      portMappings = container.port == null ? [] : [
+        {
+          containerPort = tonumber(container.port)
+          hostPort      = tonumber(container.port)
+          protocol      = container.network_protocol
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awsfirelens",
+        options = {
+          Name       = "datadog",
+          Host       = "http-intake.logs.datadoghq.eu",
+          compress   = "gzip",
+          TLS        = "on"
+          provider   = "ecs"
+          dd_service = var.application_name,
+          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]}${try(local.team_name_tag, "")}",
+        }
+        secretOptions = [
+          {
+            name      = "apiKey",
+            valueFrom = local.datadog_api_key_secret
+          }
+        ]
+      }
+
+      healthCheck       = container.health_check
+      cpu               = container.cpu
+      memory            = container.memory_hard_limit
+      memoryReservation = container.memory_soft_limit
+      dockerLabels = {
+        "com.datadoghq.tags.service" = var.application_name
+        "com.datadoghq.tags.env"     = local.environment
+        "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
+        "com.datadoghq.tags.team"    = local.team_name
+      }
+    }, container.extra_options)
+  ])
+
+  execution_role_arn = aws_iam_role.execution.arn
+  task_role_arn      = aws_iam_role.task.arn
+
+  requires_compatibilities = [var.launch_type]
+  cpu                      = var.cpu
+  memory                   = var.memory
+  # ECS Anywhere can't have "awsvpc" as the network mode
+  network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+
+  dynamic "volume" {
+    for_each = var.datadog_instrumentation_runtime != null ? [1] : []
+
+    content {
+      configure_at_launch = false
+      name                = "datadog-instrumentation-init"
+    }
+  }
+}
+
+locals {
+  task_definition = var.enable_datadog == true ? aws_ecs_task_definition.task_datadog[0] : aws_ecs_task_definition.task[0]
+}
+
+# == End of hack ==
+
 # Service preconditions to ensure that the user doesn't try combinations we want to avoid.
 resource "terraform_data" "no_launch_type_and_spot" {
   lifecycle {
@@ -444,7 +662,7 @@ resource "aws_ecs_service" "service" {
 
   name                               = var.application_name
   cluster                            = var.cluster_id
-  task_definition                    = aws_ecs_task_definition.task.arn
+  task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
   launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
@@ -517,7 +735,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   name                               = var.application_name
   cluster                            = var.cluster_id
-  task_definition                    = aws_ecs_task_definition.task.arn
+  task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
   launch_type                        = var.use_spot ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
