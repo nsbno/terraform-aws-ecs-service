@@ -391,6 +391,9 @@ locals {
       image     = "public.ecr.aws/datadog/agent:latest",
       essential = true,
 
+      cpu               = 64,
+      memory_soft_limit = 64,
+
       environment = {
         ECS_FARGATE = "true"
 
@@ -416,6 +419,9 @@ locals {
       name      = "log-router",
       image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
       essential = true,
+
+      cpu               = 64,
+      memory_soft_limit = 64,
 
       extra_options = {
         firelensConfiguration = {
