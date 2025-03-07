@@ -341,7 +341,7 @@ variable "datadog_options" {
     trace_partial_flush_min_spans = optional(number)
   })
   default = {
-    trace_startup_logs            = false
+    trace_startup_logs            = false # Datadog default is true.
     trace_partial_flush_min_spans = 2000  # Datadog default is 1000.
     # We set 2000 so the smallest vCPU instances can handle it.
   }
