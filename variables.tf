@@ -342,6 +342,6 @@ variable "datadog_options" {
   })
   default = {
     trace_startup_logs            = false
-    trace_partial_flush_min_spans = 1000
+    trace_partial_flush_min_spans = 2000
   }
 }
