@@ -1,6 +1,6 @@
 locals {
-  name_prefix      = "infrademo"
-  application_name = "my-webapp"
+  name_prefix  = "infrademo"
+  service_name = "my-webapp"
 }
 
 /*
@@ -15,7 +15,7 @@ data "aws_vpc" "main" {
 
 data "aws_subnets" "private" {
   filter {
-    name = "vpc-id"
+    name   = "vpc-id"
     values = [data.aws_vpc.main.id]
   }
 
@@ -47,7 +47,7 @@ module "datadog_service" {
   # Find newest version here: https://github.com/nsbno/terraform-datadog-service/releases
   source = "github.com/nsbno/terraform-datadog-service?ref=x.y.z"
 
-  service_name = local.application_name
+  service_name = local.service_name
   display_name = "Infrademo Server"
 
   github_url    = "https://github.com/nsbno/terraform-aws-ecs-service"
@@ -59,7 +59,7 @@ module "datadog_service" {
 module "service" {
   source = "../../"
 
-  application_name = module.datadog_service.service_name
+  service_name = module.datadog_service.service_name
 
   enable_datadog                  = true
   datadog_instrumentation_runtime = "jvm" # Can be jvm or node
@@ -77,11 +77,11 @@ module "service" {
 
   lb_listeners = [
     {
-      listener_arn = data.aws_lb_listener.http.arn
+      listener_arn      = data.aws_lb_listener.http.arn
       security_group_id = one(data.aws_lb.main.security_groups)
       conditions = [
         {
-          path_pattern = "/${local.application_name}/*"
+          path_pattern = "/${local.service_name}/*"
         }
       ]
     }

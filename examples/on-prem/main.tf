@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 locals {
-  name_prefix      = "infrademo"
-  application_name = "my-webapp"
+  name_prefix  = "infrademo"
+  service_name = "my-webapp"
 }
 
 /*
@@ -22,7 +22,7 @@ data "aws_ecs_cluster" "main" {
 module "service" {
   source = "../../"
 
-  application_name = local.application_name
+  service_name = local.service_name
 
   cluster_id = data.aws_ecs_cluster.main.id
 

@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 locals {
-  name_prefix      = "infrademo"
-  application_name = "my-webapp"
+  name_prefix  = "infrademo"
+  service_name = "my-webapp"
 }
 
 /*
@@ -53,7 +53,7 @@ data "aws_lb_listener" "http" {
 module "service" {
   source = "../../"
 
-  application_name = local.application_name
+  service_name = local.service_name
 
   vpc_id             = data.aws_vpc.main.id
   private_subnet_ids = data.aws_subnets.private.ids
@@ -73,7 +73,7 @@ module "service" {
       security_group_id = one(data.aws_lb.main.security_groups)
       conditions = [
         {
-          path_pattern = "/${local.application_name}/*"
+          path_pattern = "/${local.service_name}/*"
         }
       ]
     }

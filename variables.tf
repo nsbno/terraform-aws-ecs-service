@@ -1,5 +1,5 @@
-variable "application_name" {
-  description = "Name of service. Used to prefix the name of resources."
+variable "service_name" {
+  description = "Name of the ECS service."
   type        = string
 }
 

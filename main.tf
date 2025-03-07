@@ -2,7 +2,7 @@
  * = Logging
  */
 resource "aws_cloudwatch_log_group" "main" {
-  name              = var.application_name
+  name              = var.service_name
   retention_in_days = var.log_retention_in_days
   tags              = var.tags
 }
@@ -31,12 +31,12 @@ data "aws_iam_policy_document" "task_assume" {
  * This allows the task to pull from ECR, etc
  */
 resource "aws_iam_role" "execution" {
-  name               = "${var.application_name}-task-execution-role"
+  name               = "${var.service_name}-task-execution-role"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
 }
 
 resource "aws_iam_role_policy" "task_execution" {
-  name   = "${var.application_name}-task-execution"
+  name   = "${var.service_name}-task-execution"
   role   = aws_iam_role.execution.id
   policy = data.aws_iam_policy_document.task_execution_permissions.json
 }
@@ -90,12 +90,12 @@ data "aws_iam_policy_document" "task_execution_permissions" {
  * Gives the actual containers the permissions they need
  */
 resource "aws_iam_role" "task" {
-  name               = "${var.application_name}-task-role"
+  name               = "${var.service_name}-task-role"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
 }
 
 resource "aws_iam_role_policy" "ecs_task_logs" {
-  name   = "${var.application_name}-log-permissions"
+  name   = "${var.service_name}-log-permissions"
   role   = aws_iam_role.task.id
   policy = data.aws_iam_policy_document.ecs_task_logs.json
 }
@@ -178,11 +178,11 @@ resource "aws_security_group" "ecs_service" {
   count = var.launch_type == "EXTERNAL" ? 0 : 1
 
   vpc_id      = var.vpc_id
-  name        = "${var.application_name}-ecs-service-sg"
+  name        = "${var.service_name}-ecs-service-sg"
   description = "Fargate service security group"
   tags = merge(
     var.tags,
-    { Name = "${var.application_name}-sg" }
+    { Name = "${var.service_name}-sg" }
   )
 }
 
@@ -281,7 +281,7 @@ resource "aws_lb_target_group" "service" {
 
   tags = merge(
     var.tags,
-    { Name = "${var.application_name}-target-${var.application_container.port}-${each.key}" }
+    { Name = "${var.service_name}-target-${var.application_container.port}-${each.key}" }
   )
 }
 
@@ -396,7 +396,7 @@ locals {
 
         DD_SITE = "datadoghq.eu"
 
-        DD_SERVICE = var.application_name
+        DD_SERVICE = var.service_name
         DD_ENV     = local.environment
         DD_VERSION = split(":", var.application_container.image)[1]
         DD_TAGS    = local.team_name_tag
@@ -443,7 +443,7 @@ module "autoinstrumentation_setup" {
   application_container           = var.application_container
   datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
 
-  dd_service  = var.application_name
+  dd_service  = var.service_name
   dd_env      = local.environment
   dd_version  = split(":", var.application_container.image)[1]
   dd_team_tag = local.team_name_tag
@@ -499,7 +499,7 @@ data "aws_region" "current" {}
 resource "aws_ecs_task_definition" "task" {
   count = var.enable_datadog == true ? 0 : 1
 
-  family = var.application_name
+  family = var.service_name
   container_definitions = jsonencode([
     for container in local.containers : merge({
       name    = container.name
@@ -555,7 +555,7 @@ resource "aws_ecs_task_definition" "task" {
 resource "aws_ecs_task_definition" "task_datadog" {
   count = var.enable_datadog == true ? 1 : 0
 
-  family = var.application_name
+  family = var.service_name
 
   container_definitions = jsonencode([
     for container in local.containers : merge({
@@ -593,7 +593,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           compress   = "gzip",
           TLS        = "on"
           provider   = "ecs"
-          dd_service = var.application_name,
+          dd_service = var.service_name,
           dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]}${try(local.team_name_tag, "")}",
         }
         secretOptions = [
@@ -609,7 +609,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
       dockerLabels = {
-        "com.datadoghq.tags.service" = var.application_name
+        "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
         "com.datadoghq.tags.team"    = local.team_name
@@ -664,7 +664,7 @@ resource "aws_ecs_service" "service" {
   count      = var.autoscaling == null ? 1 : 0
   depends_on = [terraform_data.no_launch_type_and_spot]
 
-  name                               = var.application_name
+  name                               = var.service_name
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
@@ -737,7 +737,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   count      = var.autoscaling != null ? 1 : 0
   depends_on = [terraform_data.no_launch_type_and_spot]
 
-  name                               = var.application_name
+  name                               = var.service_name
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
@@ -841,7 +841,7 @@ resource "aws_appautoscaling_target" "ecs_service" {
 resource "aws_appautoscaling_policy" "ecs_service" {
   count = var.autoscaling != null ? 1 : 0
 
-  name = "${var.application_name}-automatic-scaling"
+  name = "${var.service_name}-automatic-scaling"
   # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
@@ -914,7 +914,7 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
     if var.autoscaling != null
   }
 
-  name        = "${var.application_name}-scheduled-scaling"
+  name        = "${var.service_name}-scheduled-scaling"
   resource_id = aws_appautoscaling_target.ecs_service[0].resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service[
     0
