@@ -333,3 +333,16 @@ variable "datadog_instrumentation_runtime" {
   type        = string
   default     = null
 }
+
+variable "datadog_options" {
+  description = "Options for the Datadog Agent Extension"
+  type = object({
+    trace_startup_logs            = optional(bool)
+    trace_partial_flush_min_spans = optional(number)
+  })
+  default = {
+    trace_startup_logs            = false # Datadog default is true.
+    trace_partial_flush_min_spans = 2000  # Datadog default is 1000.
+    # We set 2000 so the smallest vCPU instances can handle it.
+  }
+}
