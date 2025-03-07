@@ -333,3 +333,15 @@ variable "datadog_instrumentation_runtime" {
   type        = string
   default     = null
 }
+
+variable "dd_trace_startup_logs" {
+  description = "Enable Datadog trace logs on startup"
+  type        = bool
+  default     = false
+}
+
+variable "dd_trace_partial_flush_min_spans" {
+  description = "Number of partial spans to flush on. Useful to reduce memory overhead when dealing with heavy loads."
+  type        = number
+  default     = 1000
+}

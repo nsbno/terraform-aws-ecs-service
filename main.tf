@@ -411,6 +411,10 @@ locals {
         DD_DATA_STREAMS_ENABLED : "true"
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
         DD_TRACE_SQS_BODY_PROPAGATION_ENABLED             = "true"
+
+        # DATADOG Startup
+        DD_TRACE_STARTUP_LOGS            = var.dd_trace_startup_logs
+        DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = var.dd_trace_partial_flush_min_spans
       },
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
