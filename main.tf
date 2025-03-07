@@ -572,7 +572,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       environment = [
         for key, value in container.environment : {
           name  = key
-          value = value
+          value = tostring(value)
         }
       ]
       secrets = [
