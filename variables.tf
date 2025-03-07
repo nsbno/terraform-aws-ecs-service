@@ -335,7 +335,7 @@ variable "datadog_instrumentation_runtime" {
 }
 
 variable "datadog_options" {
-  description = "Options for the Datadog Lambda Extension"
+  description = "Options for the Datadog Agent Extension"
   type = object({
     trace_startup_logs            = optional(bool)
     trace_partial_flush_min_spans = optional(number)
