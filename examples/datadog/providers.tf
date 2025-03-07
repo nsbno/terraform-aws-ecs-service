@@ -6,7 +6,7 @@ terraform {
     }
     datadog = {
       source  = "DataDog/datadog"
-      version = ">= 3.57.0"  # Check for the newest version here: https://registry.terraform.io/providers/DataDog/datadog/latest
+      version = ">= 3.57.0" # Check for the newest version here: https://registry.terraform.io/providers/DataDog/datadog/latest
     }
   }
 }
