@@ -432,6 +432,8 @@ locals {
             enable-ecs-log-metadata = "true",
             config-file-type        = "file",
             config-file-value       = "/fluent-bit/configs/parse-json.conf"
+            dd_service              = var.service_name
+            dd_tags                 = join(",", compact([local.team_name_tag, "env:${local.environment}"]))
           }
         }
       }
