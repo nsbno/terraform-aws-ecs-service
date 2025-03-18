@@ -432,8 +432,6 @@ locals {
             enable-ecs-log-metadata = "true",
             config-file-type        = "file",
             config-file-value       = "/fluent-bit/configs/parse-json.conf"
-            dd_service              = var.service_name
-            dd_tags                 = join(",", compact([local.team_name_tag, "env:${local.environment}"]))
           }
         }
       }
@@ -600,7 +598,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.service_name,
-          dd_tags    = "env:${local.environment},version:${split(":", var.application_container.image)[1]}${try(local.team_name_tag, "")}",
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${split(":", var.application_container.image)[1]}"]))
         }
         secretOptions = [
           {
