@@ -103,7 +103,7 @@ module "service" {
         }
         stat = "Sum"
       }
-      return_data = false
+      return_data = true
     }
   ]
 
