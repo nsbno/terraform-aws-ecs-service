@@ -1002,9 +1002,9 @@ module "codedeploy" {
   deployment_group_name = "${var.service_name}-deployment-group"
 
   # TODO: Need to find out if we can remove the list
-  alb_blue_target_group_name  = aws_lb_target_group.service[0].name
-  alb_green_target_group_name = aws_lb_target_group.blue[0].name
-  alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
+  alb_blue_target_group_name  = aws_lb_target_group.service["0"].name
+  alb_green_target_group_name = aws_lb_target_group.blue["0"].name
+  alb_prod_listener_arn       = var.lb_listeners["0"].listener_arn
 
   ecr_image_base = var.application_container.repository_url
 }
