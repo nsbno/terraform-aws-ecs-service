@@ -503,13 +503,19 @@ module "autoinstrumentation_setup" {
   dd_team_tag = local.team_name_tag
 }
 
+data "aws_ssm_parameter" "deployment_version" {
+  name = "__platform__/versions/${var.service_name}"
+}
+
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
-  init_container        = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
+  # TODO: Should refactor to something easier to maintain
+  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${data.aws_ssm_parameter.deployment_version.value}" })
+  init_container                   = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
     for container in flatten([
-      [local.application_container],
+      [local.application_container_with_image],
       var.sidecar_containers,
       local.xray_container,
       # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
