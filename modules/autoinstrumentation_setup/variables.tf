@@ -2,7 +2,6 @@ variable "application_container" {
   description = "The application that is being run by the service"
   type        = object({
     name  = string
-    image = string
     essential = optional(bool, true)
     command = optional(string)
 

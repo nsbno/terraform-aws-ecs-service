@@ -403,6 +403,10 @@ resource "aws_lb_listener_rule" "service" {
  *
  * This is what users are here for
  */
+data "aws_ssm_parameter" "deployment_version" {
+  name = "__platform__/versions/${var.service_name}"
+}
+
 data "aws_ssm_parameter" "team_name" {
   count = var.enable_datadog ? 1 : 0
 
@@ -448,7 +452,7 @@ locals {
 
         DD_SERVICE = var.service_name
         DD_ENV     = local.environment
-        DD_VERSION = split(":", var.application_container.image)[1]
+        DD_VERSION = data.aws_ssm_parameter.deployment_version.value
         DD_TAGS    = local.team_name_tag
 
         DD_APM_ENABLED            = "true"
@@ -499,12 +503,8 @@ module "autoinstrumentation_setup" {
 
   dd_service  = var.service_name
   dd_env      = local.environment
-  dd_version  = split(":", var.application_container.image)[1]
+  dd_version  = data.aws_ssm_parameter.deployment_version.value
   dd_team_tag = local.team_name_tag
-}
-
-data "aws_ssm_parameter" "deployment_version" {
-  name = "__platform__/versions/${var.service_name}"
 }
 
 locals {
@@ -654,7 +654,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.service_name,
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${split(":", var.application_container.image)[1]}"]))
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${data.aws_ssm_parameter.deployment_version.value}"]))
         }
         secretOptions = [
           {
@@ -671,7 +671,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       dockerLabels = {
         "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
-        "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
+        "com.datadoghq.tags.version" = data.aws_ssm_parameter.deployment_version.value
         "com.datadoghq.tags.team"    = local.team_name
       }
     }, container.extra_options)
@@ -1006,5 +1006,5 @@ module "codedeploy" {
   alb_green_target_group_name = aws_lb_target_group.blue[0].name
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
 
-  ecr_image_base = split("/", var.application_container.image)[0]
+  ecr_image_base = var.application_container.repository_url
 }
