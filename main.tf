@@ -404,7 +404,7 @@ resource "aws_lb_listener_rule" "service" {
  * This is what users are here for
  */
 data "aws_ssm_parameter" "deployment_version" {
-  name = "__platform__/versions/${var.service_name}"
+  name = "/__platform__/versions/${var.service_name}"
 }
 
 data "aws_ssm_parameter" "team_name" {
@@ -736,6 +736,10 @@ resource "aws_ecs_service" "service" {
   propagate_tags                     = var.propagate_tags
   enable_execute_command             = var.enable_execute_command
 
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
   dynamic "network_configuration" {
@@ -811,6 +815,10 @@ resource "aws_ecs_service" "service_with_autoscaling" {
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
+
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
 
   dynamic "network_configuration" {
     for_each = var.launch_type == "EXTERNAL" ? [] : [0]
@@ -1002,9 +1010,9 @@ module "codedeploy" {
   deployment_group_name = "${var.service_name}-deployment-group"
 
   # TODO: Need to find out if we can remove the list
-  alb_blue_target_group_name  = aws_lb_target_group.service["0"].name
-  alb_green_target_group_name = aws_lb_target_group.blue["0"].name
-  alb_prod_listener_arn       = var.lb_listeners["0"].listener_arn
+  alb_blue_target_group_name  = aws_lb_target_group.service[0].name
+  alb_green_target_group_name = aws_lb_target_group.blue[0].name
+  alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
 
   ecr_image_base = var.application_container.repository_url
 }

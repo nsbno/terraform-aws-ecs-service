@@ -259,12 +259,6 @@ variable "deployment_maximum_percent" {
   description = "The upper limit of the number of running tasks that can be running in a service during a deployment"
 }
 
-variable "deployment_controller_type" {
-  description = "Type of deployment controller. Valid values: CODE_DEPLOY, ECS."
-  type        = string
-  default     = "ECS"
-}
-
 variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
