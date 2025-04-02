@@ -1014,5 +1014,6 @@ module "codedeploy" {
   alb_green_target_group_name = aws_lb_target_group.blue[0].name
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
 
+  old_tasks_termination_wait_time = var.old_tasks_termination_wait_time
   ecr_image_base = var.application_container.repository_url
 }

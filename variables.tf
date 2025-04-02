@@ -340,3 +340,10 @@ variable "datadog_options" {
     # We set 2000 so the smallest vCPU instances can handle it.
   }
 }
+
+variable "old_tasks_termination_wait_time" {
+  description = "Time in minutes to wait before terminating the old tasks."
+  type        = number
+
+  default = 0
+}
