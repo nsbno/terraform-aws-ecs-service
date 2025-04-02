@@ -790,8 +790,7 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    # May have to ignore  desired_count, load_balancer]
-    ignore_changes = [task_definition]
+    ignore_changes = [task_definition, load_balancer, desired_count]
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
       error_message = "Placement constraints are not valid for FARGATE launch type"
