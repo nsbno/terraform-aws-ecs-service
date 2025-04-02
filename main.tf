@@ -510,8 +510,7 @@ module "autoinstrumentation_setup" {
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   # TODO: Should refactor to something easier to maintain
-  repository_url = trimsuffix(var.application_container.repository_url, "/")
-  application_container_with_image = merge(local.application_container, { image = "${local.repository_url}:${data.aws_ssm_parameter.deployment_version.value}" })
+  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${data.aws_ssm_parameter.deployment_version.value}" })
   init_container                   = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
