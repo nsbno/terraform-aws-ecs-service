@@ -56,3 +56,13 @@ output "target_group_arn_suffixes" {
     for key, target_group in aws_lb_target_group.service : key => target_group.arn_suffix
   })
 }
+
+output "cpu" {
+  description = "How many vCPUs the task definition runs on"
+  value       = var.cpu
+}
+
+output "memory" {
+  description = "How much memory the task definition has"
+  value       = var.memory
+}
