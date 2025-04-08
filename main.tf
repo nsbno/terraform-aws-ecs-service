@@ -285,56 +285,6 @@ resource "aws_lb_target_group" "service" {
   )
 }
 
-resource "aws_lb_target_group" "blue" {
-  for_each = { for idx, value in var.lb_listeners : idx => value }
-
-  vpc_id = var.vpc_id
-
-  target_type = "ip"
-  port        = var.application_container.port
-  protocol    = var.application_container.protocol
-
-  deregistration_delay = var.lb_deregistration_delay
-
-  dynamic "health_check" {
-    for_each = [var.lb_health_check]
-
-    content {
-      enabled             = lookup(health_check.value, "enabled", null)
-      healthy_threshold   = lookup(health_check.value, "healthy_threshold", null)
-      interval            = lookup(health_check.value, "interval", null)
-      matcher             = lookup(health_check.value, "matcher", null)
-      path                = lookup(health_check.value, "path", null)
-      port                = lookup(health_check.value, "port", null)
-      protocol            = lookup(health_check.value, "protocol", null)
-      timeout             = lookup(health_check.value, "timeout", null)
-      unhealthy_threshold = lookup(health_check.value, "unhealthy_threshold", null)
-    }
-  }
-
-  dynamic "stickiness" {
-    for_each = var.lb_stickiness[*]
-    content {
-      type            = var.lb_stickiness.type
-      enabled         = var.lb_stickiness.enabled
-      cookie_duration = var.lb_stickiness.cookie_duration
-      cookie_name     = var.lb_stickiness.cookie_name
-    }
-  }
-
-  # NOTE: TF is unable to destroy a target group while a listener is attached,
-  # therefor we have to create a new one before destroying the old. This also means
-  # we have to let it have a random name, and then tag it with the desired name.
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = merge(
-    var.tags,
-    { Name = "${var.service_name}-target-${var.application_container.port}-${each.key}" }
-  )
-}
-
 resource "aws_lb_listener_rule" "service" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
@@ -397,6 +347,126 @@ resource "aws_lb_listener_rule" "service" {
     }
   }
 }
+
+/*
+ * ==== Blue listener setup
+ *
+ * TODO: This is just a plain copy paste of the above.
+ *       Should probably refactor into a module
+ */
+resource "aws_lb_target_group" "blue" {
+  for_each = { for idx, value in var.lb_listeners : idx => value }
+
+  vpc_id = var.vpc_id
+
+  target_type = "ip"
+  port        = var.application_container.port
+  protocol    = var.application_container.protocol
+
+  deregistration_delay = var.lb_deregistration_delay
+
+  dynamic "health_check" {
+    for_each = [var.lb_health_check]
+
+    content {
+      enabled             = lookup(health_check.value, "enabled", null)
+      healthy_threshold   = lookup(health_check.value, "healthy_threshold", null)
+      interval            = lookup(health_check.value, "interval", null)
+      matcher             = lookup(health_check.value, "matcher", null)
+      path                = lookup(health_check.value, "path", null)
+      port                = lookup(health_check.value, "port", null)
+      protocol            = lookup(health_check.value, "protocol", null)
+      timeout             = lookup(health_check.value, "timeout", null)
+      unhealthy_threshold = lookup(health_check.value, "unhealthy_threshold", null)
+    }
+  }
+
+  dynamic "stickiness" {
+    for_each = var.lb_stickiness[*]
+    content {
+      type            = var.lb_stickiness.type
+      enabled         = var.lb_stickiness.enabled
+      cookie_duration = var.lb_stickiness.cookie_duration
+      cookie_name     = var.lb_stickiness.cookie_name
+    }
+  }
+
+  # NOTE: TF is unable to destroy a target group while a listener is attached,
+  # therefor we have to create a new one before destroying the old. This also means
+  # we have to let it have a random name, and then tag it with the desired name.
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = merge(
+    var.tags,
+    { Name = "${var.service_name}-target-${var.application_container.port}-${each.key}" }
+  )
+}
+
+resource "aws_lb_listener_rule" "blue" {
+  for_each = { for idx, value in var.lb_listeners : idx => value }
+
+  listener_arn = each.value.test_listener_arn
+
+  # forward blocks require at least two target group blocks
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.blue) > 1 ? [1] : []
+    content {
+      type = "forward"
+      forward {
+        target_group {
+          arn = aws_lb_target_group.blue[each.key].arn
+        }
+        dynamic "stickiness" {
+          for_each = var.lb_stickiness.enabled ? [1] : []
+          content {
+            enabled  = true
+            duration = var.lb_stickiness.cookie_duration
+          }
+        }
+      }
+    }
+  }
+
+  # Use default forward type if only one target group is defined
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.blue) == 1 ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.blue[each.key].arn
+    }
+  }
+
+  dynamic "condition" {
+    for_each = each.value.conditions
+
+    content {
+      dynamic "path_pattern" {
+        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
+        content {
+          values = [path_pattern.value]
+        }
+      }
+
+      dynamic "host_header" {
+        for_each = condition.value.host_header != null ? [condition.value.host_header] : []
+        content {
+          values = flatten([host_header.value]) # Accept both a string or a list
+        }
+      }
+
+      dynamic "http_header" {
+        for_each = condition.value.http_header != null ? [condition.value.http_header] : []
+        content {
+          http_header_name = http_header.value.name
+          values           = http_header.value.values
+        }
+      }
+    }
+  }
+}
+
 
 /*
  * = ECS Service
@@ -1015,6 +1085,7 @@ module "codedeploy" {
   alb_blue_target_group_name  = aws_lb_target_group.service[0].name
   alb_green_target_group_name = aws_lb_target_group.blue[0].name
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
+  alb_test_listener_arn       = var.lb_listeners[0].test_listener_arn
 
   old_tasks_termination_wait_time = var.old_tasks_termination_wait_time
   ecr_image_base = var.application_container.repository_url

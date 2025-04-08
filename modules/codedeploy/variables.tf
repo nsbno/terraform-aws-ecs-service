@@ -36,6 +36,11 @@ variable "alb_prod_listener_arn" {
   type        = string
 }
 
+variable "alb_test_listener_arn" {
+  description = "Arn of ALB Prod listener"
+  type        = string
+}
+
 variable "alb_blue_target_group_name" {
   description = "ALB Blue target group name"
   type        = string

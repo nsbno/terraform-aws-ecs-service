@@ -116,6 +116,7 @@ variable "lb_listeners" {
   description = "Configuration for load balancing. Note: each condition needs to be wrapped in a separate block"
   type = list(object({
     listener_arn      = string
+    test_listener_arn = string
     security_group_id = string
 
     conditions = list(object({

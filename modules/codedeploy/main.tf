@@ -76,16 +76,13 @@ resource "aws_codedeploy_deployment_group" "this" {
         name = var.alb_green_target_group_name
       }
 
-      # TODO: Have to be used if we want to create smoke tests, commenting out for now
-      # test_traffic_route {
-      #   listener_arns = var.alb_test_listener_arns
-      # }
+      test_traffic_route {
+        listener_arns = [var.alb_test_listener_arn]
+      }
 
-      # TODO: This needs to have an associated listener to be valid.
-      #       Right now we do not have this.
-      # target_group {
-      #   name = var.alb_blue_target_group_name
-      # }
+      target_group {
+        name = var.alb_blue_target_group_name
+      }
     }
 
   }
