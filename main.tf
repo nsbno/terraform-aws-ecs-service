@@ -375,7 +375,8 @@ locals {
     }
   ] : []
 
-  team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? data.aws_ssm_parameter.team_name[0].value : null
+  # non sensitive team name value to avoid recreation of the task definition
+  team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? nonsensitive(data.aws_ssm_parameter.team_name[0].value) : null
   team_name_tag          = local.team_name != null ? format("team:%s", local.team_name) : null
   datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
@@ -434,6 +435,8 @@ locals {
             config-file-value       = "/fluent-bit/configs/parse-json.conf"
           }
         }
+        # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
+        user = "0"
       }
     }
   ] : null
@@ -618,6 +621,11 @@ resource "aws_ecs_task_definition" "task_datadog" {
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
         "com.datadoghq.tags.team"    = local.team_name
       }
+
+      # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
+      systemControls = []
+      volumesFrom    = []
+      mountPoints    = []
     }, container.extra_options)
   ])
 
