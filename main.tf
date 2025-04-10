@@ -300,6 +300,9 @@ resource "aws_lb_listener_rule" "service" {
         target_group {
           arn = aws_lb_target_group.service[each.key].arn
         }
+        target_group {
+          arn = aws_lb_target_group.blue[each.key].arn
+        }
         dynamic "stickiness" {
           for_each = var.lb_stickiness.enabled ? [1] : []
           content {

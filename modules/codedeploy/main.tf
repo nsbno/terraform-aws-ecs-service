@@ -73,7 +73,7 @@ resource "aws_codedeploy_deployment_group" "this" {
       }
 
       target_group {
-        name = var.alb_green_target_group_name
+        name = var.alb_blue_target_group_name
       }
 
       test_traffic_route {
@@ -81,7 +81,7 @@ resource "aws_codedeploy_deployment_group" "this" {
       }
 
       target_group {
-        name = var.alb_blue_target_group_name
+        name = var.alb_green_target_group_name
       }
     }
 
