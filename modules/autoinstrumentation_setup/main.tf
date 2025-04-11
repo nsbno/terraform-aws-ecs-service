@@ -48,6 +48,8 @@ locals {
 
         # Remove "java-aws-sdk" and make it the same name as DD_SERVICE
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
+        DD_DATA_STREAMS_ENABLED = "true"
+        DD_TRACE_SQS_BODY_PROPAGATION_ENABLED = "true"
 
         # Allow for dynamic instrumentation
         DD_DYNAMIC_INSTRUMENTATION_ENABLED = true
