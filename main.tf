@@ -290,36 +290,16 @@ resource "aws_lb_listener_rule" "service" {
 
   listener_arn = each.value.listener_arn
 
-
-  # forward blocks require at least two target group blocks
-  dynamic "action" {
-    for_each = length(aws_lb_target_group.service) > 1 ? [1] : []
-    content {
-      type = "forward"
-      forward {
-        target_group {
-          arn = aws_lb_target_group.service[each.key].arn
-        }
-        target_group {
-          arn = aws_lb_target_group.blue[each.key].arn
-        }
-        dynamic "stickiness" {
-          for_each = var.lb_stickiness.enabled ? [1] : []
-          content {
-            enabled  = true
-            duration = var.lb_stickiness.cookie_duration
-          }
-        }
-      }
-    }
-  }
-
   # Use default forward type if only one target group is defined
-  dynamic "action" {
-    for_each = length(aws_lb_target_group.service) == 1 ? [1] : []
-    content {
-      type             = "forward"
-      target_group_arn = aws_lb_target_group.service[each.key].arn
+  action {
+    type = "forward"
+    forward {
+      target_group {
+        arn = aws_lb_target_group.service[each.key].arn
+      }
+      target_group {
+        arn = aws_lb_target_group.blue[each.key].arn
+      }
     }
   }
 
@@ -845,7 +825,7 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  # We set the service as a spot service through setting up the capacity_provider_strategy. 
+  # We set the service as a spot service through setting up the capacity_provider_strategy.
   # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
   dynamic "capacity_provider_strategy" {
     for_each = var.use_spot ? [local.capacity_provider_strategy] : []
@@ -924,7 +904,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     }
   }
 
-  # We set the service as a spot service through setting up the capacity_provider_strategy. 
+  # We set the service as a spot service through setting up the capacity_provider_strategy.
   # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
   dynamic "capacity_provider_strategy" {
     for_each = var.use_spot ? [local.capacity_provider_strategy] : []
