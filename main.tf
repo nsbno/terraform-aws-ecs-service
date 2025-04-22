@@ -296,10 +296,11 @@ resource "aws_lb_listener_rule" "service" {
     forward {
       target_group {
         arn = aws_lb_target_group.service[each.key].arn
+        weight = 0
       }
       target_group {
         arn = aws_lb_target_group.blue[each.key].arn
-        weight = 0
+        weight = 100
       }
     }
   }
