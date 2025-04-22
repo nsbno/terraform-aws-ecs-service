@@ -299,6 +299,7 @@ resource "aws_lb_listener_rule" "service" {
       }
       target_group {
         arn = aws_lb_target_group.blue[each.key].arn
+        weight = 0
       }
     }
   }
