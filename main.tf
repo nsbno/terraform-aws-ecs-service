@@ -296,11 +296,11 @@ resource "aws_lb_listener_rule" "service" {
     forward {
       target_group {
         arn = aws_lb_target_group.service[each.key].arn
-        weight = 0
+        weight = 1
       }
       target_group {
         arn = aws_lb_target_group.blue[each.key].arn
-        weight = 100
+        weight = 0
       }
     }
   }
@@ -330,6 +330,18 @@ resource "aws_lb_listener_rule" "service" {
         }
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # NOTE: This is bound to cause some issues at some point.
+      #       This is required because CodeDeploy will take charge of the weighting
+      #       after the initial deploy.
+      #       We can not reference the target groups directly.
+      #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
+      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      action[0].forward[0],
+    ]
   }
 }
 
