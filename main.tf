@@ -1096,4 +1096,6 @@ module "codedeploy" {
 
   old_tasks_termination_wait_time = var.old_tasks_termination_wait_time
   ecr_image_base = var.application_container.repository_url
+
+  depends_on = [aws_ecs_service.service]
 }
