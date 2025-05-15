@@ -94,12 +94,13 @@ resource "aws_codedeploy_deployment_group" "this" {
 
 locals {
   ssm_parameters = {
-    compute_target = "ecs"
+    compute_target              = "ecs"
     codedeploy_deployment_group = aws_codedeploy_deployment_group.this.deployment_group_name
     codedeploy_application_name = aws_codedeploy_app.this.name
-    ecs_cluster_name = var.cluster_name
-    ecs_service_name = var.service_name
-    ecr_image_base = var.ecr_image_base # split("/", var.application_container.image)[0]
+    ecs_cluster_name            = var.cluster_name
+    ecs_service_name            = var.service_name
+    ecr_image_base              = var.ecr_image_base # split("/", var.application_container.image)[0]
+    ecs_container_port          = var.application_container_port
   }
 }
 

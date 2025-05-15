@@ -50,3 +50,8 @@ variable "alb_green_target_group_name" {
   description = "ALB Green target group name"
   type        = string
 }
+
+variable "application_container_port" {
+  description = "Port of the application container"
+  type        = number
+}
