@@ -84,11 +84,6 @@ resource "aws_codedeploy_deployment_group" "this" {
         name = var.alb_green_target_group_name
       }
     }
-
-  }
-
-  lifecycle {
-    ignore_changes = [blue_green_deployment_config]
   }
 }
 
