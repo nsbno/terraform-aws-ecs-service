@@ -1,20 +1,21 @@
 variable "application_container" {
   description = "The application that is being run by the service"
-  type        = object({
-    name  = string
+  type = object({
+    name      = string
+    image     = string
     essential = optional(bool, true)
-    command = optional(string)
+    command   = optional(string)
 
     environment = optional(map(string))
-    secrets = optional(map(string))
+    secrets     = optional(map(string))
 
-    cpu = optional(number)
+    cpu               = optional(number)
     memory_hard_limit = optional(number)
     memory_soft_limit = optional(number)
 
-    port              = number
-    protocol          = string,
-    network_protocol  = optional(string, "tcp")
+    port             = number
+    protocol         = string,
+    network_protocol = optional(string, "tcp")
 
     health_check = optional(any)
 
