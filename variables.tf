@@ -342,7 +342,7 @@ variable "datadog_options" {
   }
 }
 
-variable "old_tasks_termination_wait_time" {
+variable "rollback_window_in_minutes" {
   description = "Time in minutes to wait before terminating the old tasks."
   type        = number
 

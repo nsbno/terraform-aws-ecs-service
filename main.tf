@@ -295,11 +295,11 @@ resource "aws_lb_listener_rule" "service" {
     type = "forward"
     forward {
       target_group {
-        arn = aws_lb_target_group.service[each.key].arn
+        arn    = aws_lb_target_group.service[each.key].arn
         weight = 1
       }
       target_group {
-        arn = aws_lb_target_group.blue[each.key].arn
+        arn    = aws_lb_target_group.blue[each.key].arn
         weight = 0
       }
     }
@@ -1083,8 +1083,8 @@ module "codedeploy" {
   # Only use if we have lb_listeners
   source = "./modules/codedeploy"
 
-  service_name = var.service_name
-  cluster_name = local.cluster_name
+  service_name               = var.service_name
+  cluster_name               = local.cluster_name
   application_container_port = var.application_container.port
 
   deployment_group_name = "${var.service_name}-deployment-group"
@@ -1095,8 +1095,8 @@ module "codedeploy" {
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
   alb_test_listener_arn       = var.lb_listeners[0].test_listener_arn
 
-  old_tasks_termination_wait_time = var.old_tasks_termination_wait_time
-  ecr_image_base = var.application_container.repository_url
+  old_tasks_termination_wait_time = var.rollback_window_in_minutes
+  ecr_image_base                  = var.application_container.repository_url
 
   depends_on = [aws_ecs_service.service]
 }
