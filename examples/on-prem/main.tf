@@ -15,6 +15,12 @@ data "aws_ecs_cluster" "main" {
   cluster_name = "${local.name_prefix}-cluster"
 }
 
+data "aws_ecr_repository" "this" {
+  name        = "infrademo-demo-repo"
+  registry_id = "123456789012" # service account id
+}
+
+
 /*
  * = The actual setup
  */
@@ -30,10 +36,10 @@ module "service" {
   launch_type = "EXTERNAL"
 
   application_container = {
-    name     = "main"
-    image    = "nginx:latest"
-    port     = 80
-    protocol = "HTTP"
+    name           = "main"
+    repository_url = data.aws_ecr_repository.this.repository_url
+    port           = 80
+    protocol       = "HTTP"
   }
 
   placement_constraints = [

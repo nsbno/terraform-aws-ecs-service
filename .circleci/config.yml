@@ -12,6 +12,8 @@ example-folders: &example-folders
   - examples/simple
   - examples/on-prem
   - examples/autoscaling
+  - examples/autoscaling-with-custom-metrics
+  - examples/datadog
 
 workflows:
   validate:
