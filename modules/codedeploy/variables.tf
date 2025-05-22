@@ -24,7 +24,7 @@ variable "deployment_config_name" {
   default     = "CodeDeployDefault.ECSAllAtOnce"
 }
 
-variable "old_tasks_termination_wait_time" {
+variable "rollback_window_in_minutes" {
   description = "Old ECS task termination wait time in minutes"
   type        = number
 

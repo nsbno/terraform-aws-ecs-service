@@ -52,7 +52,7 @@ resource "aws_codedeploy_deployment_group" "this" {
 
     terminate_blue_instances_on_deployment_success {
       action                           = "TERMINATE"
-      termination_wait_time_in_minutes = var.old_tasks_termination_wait_time
+      termination_wait_time_in_minutes = var.rollback_window_in_minutes
     }
   }
 

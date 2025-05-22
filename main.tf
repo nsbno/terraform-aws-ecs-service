@@ -1098,8 +1098,8 @@ module "codedeploy" {
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
   alb_test_listener_arn       = var.lb_listeners[0].test_listener_arn
 
-  old_tasks_termination_wait_time = var.rollback_window_in_minutes
-  ecr_image_base                  = var.application_container.repository_url
+  rollback_window_in_minutes = var.rollback_window_in_minutes
+  ecr_image_base             = var.application_container.repository_url
 
   depends_on = [aws_ecs_service.service]
 }
