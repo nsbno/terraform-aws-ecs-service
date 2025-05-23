@@ -470,8 +470,17 @@ resource "aws_lb_listener_rule" "blue" {
  *
  * This is what users are here for
  */
-data "aws_ssm_parameter" "deployment_version" {
-  name = "/__platform__/versions/${var.service_name}"
+resource "aws_ssm_parameter" "deployment_version" {
+  # This parameter is used to initially store the version of the Lambda function. Will be overwritten
+  name  = "/__platform__/versions/${var.service_name}"
+  type  = "String"
+  value = "latest"
+
+  lifecycle {
+    ignore_changes = [
+      value
+    ]
+  }
 }
 
 data "aws_ssm_parameter" "team_name" {
@@ -520,7 +529,7 @@ locals {
 
         DD_SERVICE = var.service_name
         DD_ENV     = local.environment
-        DD_VERSION = data.aws_ssm_parameter.deployment_version.value
+        DD_VERSION = aws_ssm_parameter.deployment_version.value
         DD_TAGS    = local.team_name_tag
 
         DD_APM_ENABLED            = "true"
@@ -568,14 +577,14 @@ module "autoinstrumentation_setup" {
 
   dd_service  = var.service_name
   dd_env      = local.environment
-  dd_version  = data.aws_ssm_parameter.deployment_version.value
+  dd_version  = aws_ssm_parameter.deployment_version.value
   dd_team_tag = local.team_name_tag
 }
 
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   # TODO: Should refactor to something easier to maintain
-  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${data.aws_ssm_parameter.deployment_version.value}" })
+  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${aws_ssm_parameter.deployment_version.value}" })
   init_container                   = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
@@ -719,7 +728,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.service_name,
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${data.aws_ssm_parameter.deployment_version.value}"]))
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${aws_ssm_parameter.deployment_version.value}"]))
         }
         secretOptions = [
           {
@@ -736,7 +745,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       dockerLabels = {
         "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
-        "com.datadoghq.tags.version" = data.aws_ssm_parameter.deployment_version.value
+        "com.datadoghq.tags.version" = aws_ssm_parameter.deployment_version.value
         "com.datadoghq.tags.team"    = local.team_name
       }
 
