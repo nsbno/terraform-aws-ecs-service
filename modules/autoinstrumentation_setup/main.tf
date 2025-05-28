@@ -58,7 +58,6 @@ locals {
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
-        DD_VERSION = var.dd_version
         DD_TAGS    = var.dd_team_tag
       }
       extra_options = {
@@ -85,7 +84,6 @@ locals {
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
-        DD_VERSION = var.dd_version
       }
       extra_options = {
         dependsOn = [

@@ -529,7 +529,6 @@ locals {
 
         DD_SERVICE = var.service_name
         DD_ENV     = local.environment
-        DD_VERSION = aws_ssm_parameter.deployment_version.value
         DD_TAGS    = local.team_name_tag
 
         DD_APM_ENABLED            = "true"
@@ -577,7 +576,6 @@ module "autoinstrumentation_setup" {
 
   dd_service  = var.service_name
   dd_env      = local.environment
-  dd_version  = aws_ssm_parameter.deployment_version.value
   dd_team_tag = local.team_name_tag
 }
 
@@ -728,7 +726,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.service_name,
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${aws_ssm_parameter.deployment_version.value}"]))
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}"]))
         }
         secretOptions = [
           {
@@ -745,7 +743,6 @@ resource "aws_ecs_task_definition" "task_datadog" {
       dockerLabels = {
         "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
-        "com.datadoghq.tags.version" = aws_ssm_parameter.deployment_version.value
         "com.datadoghq.tags.team"    = local.team_name
       }
 

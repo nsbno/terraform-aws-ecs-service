@@ -37,10 +37,6 @@ variable "dd_env" {
   type = string
 }
 
-variable "dd_version" {
-  type = string
-}
-
 variable "dd_team_tag" {
   type = string
 }
