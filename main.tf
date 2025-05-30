@@ -340,7 +340,7 @@ resource "aws_lb_listener_rule" "service" {
       #       We can not reference the target groups directly.
       #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
       # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
-      action[0].forward[0],
+      action[0]
     ]
   }
 }
@@ -461,6 +461,18 @@ resource "aws_lb_listener_rule" "blue" {
         }
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # NOTE: This is bound to cause some issues at some point.
+      #       This is required because CodeDeploy will take charge of the weighting
+      #       after the initial deploy.
+      #       We can not reference the target groups directly.
+      #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
+      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      action[0]
+    ]
   }
 }
 
@@ -584,7 +596,7 @@ module "autoinstrumentation_setup" {
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   # TODO: Should refactor to something easier to maintain
-  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${aws_ssm_parameter.deployment_version.value}" })
+  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${nonsensitive(aws_ssm_parameter.deployment_version.value)}" })
   init_container                   = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
