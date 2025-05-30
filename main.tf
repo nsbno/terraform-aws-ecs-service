@@ -651,7 +651,10 @@ data "aws_region" "current" {}
 resource "aws_ecs_task_definition" "task" {
   count = var.enable_datadog == true ? 0 : 1
 
-  family = var.service_name
+  # Let Github Actions handle the versioning of the task definition
+  track_latest = true
+  family       = var.service_name
+
   container_definitions = jsonencode([
     for container in local.containers : merge({
       name    = container.name
@@ -707,7 +710,9 @@ resource "aws_ecs_task_definition" "task" {
 resource "aws_ecs_task_definition" "task_datadog" {
   count = var.enable_datadog == true ? 1 : 0
 
-  family = var.service_name
+  # Let Github Actions handle the versioning of the task definition
+  track_latest = true
+  family       = var.service_name
 
   container_definitions = jsonencode([
     for container in local.containers : merge({
