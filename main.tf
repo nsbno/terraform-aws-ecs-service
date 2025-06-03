@@ -663,13 +663,13 @@ resource "aws_ecs_task_definition" "task" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      environment = [
+      environment = container.environment == null ? [] : [
         for key, value in container.environment : {
           name  = key
           value = value
         }
       ]
-      secrets = [
+      secrets = container.secrets == null ? [] : [
         for key, value in container.secrets : {
           name      = key
           valueFrom = value
