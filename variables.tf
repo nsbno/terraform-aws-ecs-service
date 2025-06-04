@@ -65,6 +65,33 @@ variable "sidecar_containers" {
   default = []
 }
 
+variable "digital_log_router_container" {
+  # TODO Delete and refactor digital module into this
+  description = "Digital sidecar for the main application"
+  type = list(object({
+    name      = string
+    image     = string
+    essential = optional(bool, true)
+    command   = optional(string)
+
+    environment = optional(map(string))
+    secrets     = optional(map(string))
+
+    cpu               = optional(number)
+    memory_hard_limit = optional(number)
+    memory_soft_limit = optional(number)
+
+    port             = optional(number)
+    protocol         = optional(string)
+    network_protocol = optional(string, "tcp")
+
+    health_check = optional(any)
+
+    extra_options = optional(any)
+  }))
+  default = []
+}
+
 variable "launch_type" {
   description = "What to launch the instance on. Mutually exclusive with \"use_spot\"."
   type        = string

@@ -609,6 +609,7 @@ locals {
     for container in flatten([
       [local.application_container_with_image],
       var.sidecar_containers,
+      var.digital_log_router_container,
       local.xray_container,
       # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
       local.datadog_containers != null ? local.datadog_containers : [null, null],
