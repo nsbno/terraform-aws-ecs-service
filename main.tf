@@ -974,9 +974,8 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     }
   }
 
-
   lifecycle {
-    ignore_changes = [desired_count]
+    ignore_changes = [task_definition, load_balancer, desired_count]
 
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
