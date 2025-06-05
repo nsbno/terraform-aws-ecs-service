@@ -695,6 +695,11 @@ resource "aws_ecs_task_definition" "task" {
       cpu               = container.cpu
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
+
+      # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
+      systemControls = []
+      volumesFrom    = []
+      mountPoints    = []
     }, container.extra_options)
   ])
 
