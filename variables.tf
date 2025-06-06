@@ -346,3 +346,9 @@ variable "datadog_options" {
     # We set 2000 so the smallest vCPU instances can handle it.
   }
 }
+
+variable "datadog_environment_variables" {
+  description = "Additonal environment variables to set for the Datadog Agent Extension"
+  type        = map(string)
+  default     = {}
+}

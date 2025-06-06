@@ -392,7 +392,7 @@ locals {
       image     = "public.ecr.aws/datadog/agent:latest",
       essential = true,
 
-      environment = {
+      environment = merge({
         ECS_FARGATE = "true"
 
         DD_SITE = "datadoghq.eu"
@@ -411,7 +411,7 @@ locals {
         # DATADOG Startup
         DD_TRACE_STARTUP_LOGS            = var.datadog_options.trace_startup_logs
         DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = var.datadog_options.trace_partial_flush_min_spans
-      },
+      }, var.datadog_environment_variables),
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
       }
