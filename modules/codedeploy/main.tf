@@ -94,6 +94,7 @@ locals {
     codedeploy_application_name = aws_codedeploy_app.this.name
     ecs_cluster_name            = var.cluster_name
     ecs_service_name            = var.service_name
+    ecs_container_name          = var.container_name
     ecr_image_base              = var.ecr_image_base # split("/", var.application_container.image)[0]
     ecs_container_port          = var.application_container_port
   }

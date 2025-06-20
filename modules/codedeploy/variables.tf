@@ -3,6 +3,11 @@ variable "service_name" {
   type        = string
 }
 
+variable "container_name" {
+  description = "Name of the ECS container to make sure it corresponds to the application container"
+  type        = string
+}
+
 variable "cluster_name" {
   description = "ECS cluster name"
   type        = string

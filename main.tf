@@ -1125,6 +1125,7 @@ module "codedeploy" {
   service_name               = var.service_name
   cluster_name               = local.cluster_name
   application_container_port = var.application_container.port
+  container_name             = var.application_container.name
 
   deployment_group_name = "${var.service_name}-deployment-group"
 
