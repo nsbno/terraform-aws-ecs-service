@@ -299,7 +299,7 @@ resource "aws_lb_listener_rule" "service" {
         weight = 1
       }
       target_group {
-        arn    = aws_lb_target_group.blue[each.key].arn
+        arn    = aws_lb_target_group.replacement[each.key].arn
         weight = 0
       }
     }
@@ -340,6 +340,8 @@ resource "aws_lb_listener_rule" "service" {
       #       We can not reference the target groups directly.
       #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
       # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      # Can cause issues if migrating from an older version, using this module
+      # "The ELB could not be updated due to the following error: Primary taskset target group must be behind listener"
       action[0]
     ]
   }
@@ -351,7 +353,7 @@ resource "aws_lb_listener_rule" "service" {
  * TODO: This is just a plain copy paste of the above.
  *       Should probably refactor into a module
  */
-resource "aws_lb_target_group" "blue" {
+resource "aws_lb_target_group" "replacement" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
   vpc_id = var.vpc_id
@@ -401,19 +403,19 @@ resource "aws_lb_target_group" "blue" {
   )
 }
 
-resource "aws_lb_listener_rule" "blue" {
+resource "aws_lb_listener_rule" "replacement" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
   listener_arn = each.value.test_listener_arn
 
   # forward blocks require at least two target group blocks
   dynamic "action" {
-    for_each = length(aws_lb_target_group.blue) > 1 ? [1] : []
+    for_each = length(aws_lb_target_group.replacement) > 1 ? [1] : []
     content {
       type = "forward"
       forward {
         target_group {
-          arn = aws_lb_target_group.blue[each.key].arn
+          arn = aws_lb_target_group.replacement[each.key].arn
         }
         dynamic "stickiness" {
           for_each = var.lb_stickiness.enabled ? [1] : []
@@ -428,12 +430,13 @@ resource "aws_lb_listener_rule" "blue" {
 
   # Use default forward type if only one target group is defined
   dynamic "action" {
-    for_each = length(aws_lb_target_group.blue) == 1 ? [1] : []
+    for_each = length(aws_lb_target_group.replacement) == 1 ? [1] : []
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.blue[each.key].arn
+      target_group_arn = aws_lb_target_group.replacement[each.key].arn
     }
   }
+
 
   dynamic "condition" {
     for_each = each.value.conditions
@@ -1131,7 +1134,7 @@ module "codedeploy" {
 
   # TODO: Need to find out if we can remove the list
   alb_blue_target_group_name  = aws_lb_target_group.service[0].name
-  alb_green_target_group_name = aws_lb_target_group.blue[0].name
+  alb_green_target_group_name = aws_lb_target_group.replacement[0].name
   alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
   alb_test_listener_arn       = var.lb_listeners[0].test_listener_arn
 
