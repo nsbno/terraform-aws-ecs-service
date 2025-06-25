@@ -687,6 +687,7 @@ resource "aws_ecs_service" "service" {
   wait_for_steady_state              = var.wait_for_steady_state
   propagate_tags                     = var.propagate_tags
   enable_execute_command             = var.enable_execute_command
+  force_new_deployment               = var.force_new_deployment
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
@@ -761,6 +762,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   wait_for_steady_state              = var.wait_for_steady_state
   propagate_tags                     = var.propagate_tags
   enable_execute_command             = var.enable_execute_command
+  force_new_deployment               = var.force_new_deployment
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
