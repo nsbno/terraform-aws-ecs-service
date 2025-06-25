@@ -482,8 +482,12 @@ locals {
     } if container != null
   ]
 
-  capacity_provider_strategy = {
+  capacity_provider_strategy_spot = {
     capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+  capacity_provider_strategy_on_demand = {
+    capacity_provider = "FARGATE"
     weight            = 1
   }
 }
@@ -675,7 +679,8 @@ resource "aws_ecs_service" "service" {
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.use_spot ? null : var.launch_type
+  # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
+  launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
@@ -705,10 +710,10 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  # We set the service as a spot service through setting up the capacity_provider_strategy. 
-  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
+  # We set the service as a spot service through setting up the capacity_provider_strategy.
   dynamic "capacity_provider_strategy" {
-    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+    # Only use for Fargate launch type
+    for_each = var.launch_type != "FARGATE" ? [] : (var.use_spot ? [local.capacity_provider_strategy_spot] : [local.capacity_provider_strategy_on_demand])
 
     content {
       capacity_provider = capacity_provider_strategy.value.capacity_provider
@@ -748,7 +753,8 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.use_spot ? null : var.launch_type
+  # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
+  launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
@@ -779,10 +785,10 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     }
   }
 
-  # We set the service as a spot service through setting up the capacity_provider_strategy. 
-  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
+  # We set the service as a spot service through setting up the capacity_provider_strategy.
   dynamic "capacity_provider_strategy" {
-    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+    # Only use for Fargate launch type
+    for_each = var.launch_type != "FARGATE" ? [] : (var.use_spot ? [local.capacity_provider_strategy_spot] : [local.capacity_provider_strategy_on_demand])
 
     content {
       capacity_provider = capacity_provider_strategy.value.capacity_provider
