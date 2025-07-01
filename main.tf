@@ -872,6 +872,16 @@ resource "aws_ecs_service" "service" {
     }
   }
 
+  dynamic "load_balancer" {
+    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
+
+    content {
+      container_name   = var.application_container.name
+      container_port   = var.application_container.port
+      target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
+    }
+  }
+
   # We set the service as a spot service through setting up the capacity_provider_strategy.
   # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
   dynamic "capacity_provider_strategy" {
@@ -948,6 +958,16 @@ resource "aws_ecs_service" "service_with_autoscaling" {
       container_name   = var.application_container.name
       container_port   = var.application_container.port
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
+    }
+  }
+
+  dynamic "load_balancer" {
+    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
+
+    content {
+      container_name   = var.application_container.name
+      container_port   = var.application_container.port
+      target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
     }
   }
 
