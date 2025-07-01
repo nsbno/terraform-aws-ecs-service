@@ -850,6 +850,11 @@ resource "aws_ecs_service" "service" {
     type = "CODE_DEPLOY"
   }
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
   dynamic "network_configuration" {
