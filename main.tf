@@ -200,7 +200,8 @@ data "aws_iam_policy_document" "load_balancer_and_target_groups" {
       "elasticloadbalancing:DescribeListeners",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeTargetHealth",
-      "elasticloadbalancing:RegisterTargets"
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets"
     ]
 
     resources = ["*"]
