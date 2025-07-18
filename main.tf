@@ -166,6 +166,52 @@ data "aws_iam_policy_document" "ssm_messages_for_local_access" {
 }
 
 /*
+ * == Infrastructure role for load balancers
+ *
+ * Gives permissions to the load balancers to be able to use blue/green deployments
+ */
+
+data "aws_iam_policy_document" "load_balancers_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "infrastructure_for_load_balancers" {
+  name               = "${var.service_name}-infrastructure-for-load-balancers"
+  assume_role_policy = data.aws_iam_policy_document.load_balancers_assume.json
+}
+
+data "aws_iam_policy_document" "load_balancer_and_target_groups" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:ModifyRule",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeTargetHealth"
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "for_load_balancers" {
+  role       = aws_iam_role.infrastructure_for_load_balancers.id
+  policy = data.aws_iam_policy_document.load_balancer_and_target_groups.json
+}
+
+/*
  * = Networking
  *
  * Various networking components for the services
@@ -847,7 +893,17 @@ resource "aws_ecs_service" "service" {
   enable_execute_command             = var.enable_execute_command
 
   deployment_controller {
-    type = "CODE_DEPLOY"
+    type = var.deployment_controller_type
+  }
+
+  deployment_circuit_breaker {
+    enable   = var.deployment_circuit_breaker.enable
+    rollback = var.deployment_circuit_breaker.rollback
+  }
+
+  deployment_configuration {
+    strategy             = var.deployment_configuration_strategy
+    bake_time_in_minutes = var.rollback_window_in_minutes
   }
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
@@ -869,16 +925,13 @@ resource "aws_ecs_service" "service" {
       container_name   = var.application_container.name
       container_port   = var.application_container.port
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
-    }
-  }
 
-  dynamic "load_balancer" {
-    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
-
-    content {
-      container_name   = var.application_container.name
-      container_port   = var.application_container.port
-      target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
+      advanced_configuration {
+        alternate_target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
+        production_listener_rule   = aws_lb_listener_rule.service[load_balancer.key].arn
+        role_arn                   = aws_iam_role.infrastructure_for_load_balancers.arn
+        test_listener_rule         = aws_lb_listener_rule.replacement[load_balancer.key].arn
+      }
     }
   }
 
@@ -910,7 +963,7 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition, load_balancer, desired_count]
+    ignore_changes = [task_definition, desired_count]
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
       error_message = "Placement constraints are not valid for FARGATE launch type"
@@ -1130,26 +1183,21 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
   }
 }
 
-# CODE DEPLOY SET UP
-module "codedeploy" {
-  # Only use if we have lb_listeners
-  source = "./modules/codedeploy"
+locals {
+  ssm_parameters = {
+    compute_target     = "ecs"
+    ecs_cluster_name   = local.cluster_name
+    ecs_service_name   = var.service_name
+    ecs_container_name = var.application_container.name
+    ecr_image_base     = var.application_container.repository_url
+    ecs_container_port = var.application_container.port
+  }
+}
 
-  service_name               = var.service_name
-  cluster_name               = local.cluster_name
-  application_container_port = var.application_container.port
-  container_name             = var.application_container.name
+resource "aws_ssm_parameter" "ssm_parameters" {
+  for_each = local.ssm_parameters
 
-  deployment_group_name = "${var.service_name}-deployment-group"
-
-  # TODO: Need to find out if we can remove the list
-  alb_blue_target_group_name  = aws_lb_target_group.service[0].name
-  alb_green_target_group_name = aws_lb_target_group.replacement[0].name
-  alb_prod_listener_arn       = var.lb_listeners[0].listener_arn
-  alb_test_listener_arn       = var.lb_listeners[0].test_listener_arn
-
-  rollback_window_in_minutes = var.rollback_window_in_minutes
-  ecr_image_base             = var.application_container.repository_url
-
-  depends_on = [aws_ecs_service.service]
+  name  = "/__deployment__/applications/${var.service_name}/${each.key}"
+  type  = "String"
+  value = each.value
 }

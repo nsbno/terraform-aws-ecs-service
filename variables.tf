@@ -375,3 +375,38 @@ variable "rollback_window_in_minutes" {
 
   default = 0
 }
+
+# Deployment variables
+variable "deployment_controller_type" {
+  description = "The type of deployment controller to use. Valid values are ECS, CODE_DEPLOY, EXTERNAL"
+  type        = string
+  default     = "ECS"
+
+  validation {
+    condition     = contains(["ECS", "CODE_DEPLOY", "EXTERNAL"], var.deployment_controller_type)
+    error_message = "The deployment_controller_type must be one of: ECS, CODE_DEPLOY, EXTERNAL"
+  }
+}
+
+variable "deployment_circuit_breaker" {
+  description = "Configuration block for the deployment circuit breaker. If set, it will enable the circuit breaker for the service."
+  type = object({
+    enable   = bool
+    rollback = bool
+  })
+  default = {
+    enable   = true
+    rollback = true
+  }
+}
+
+variable "deployment_configuration_strategy" {
+  description = "The deployment strategy to use for the service. Valid values are ROLLING, BLUE_GREEN"
+  type        = string
+  default     = "BLUE_GREEN"
+
+  validation {
+    condition     = contains(["ROLLING", "BLUE_GREEN"], var.deployment_configuration_strategy)
+    error_message = "The deployment_strategy must be one of: ROLLING, BLUE_GREEN"
+  }
+}
