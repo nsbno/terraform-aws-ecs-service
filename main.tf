@@ -286,6 +286,7 @@ resource "aws_security_group_rule" "egress_service" {
 resource "aws_lb_target_group" "service" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
+  name   = "${var.service_name}-blue-target-${var.application_container.port}-key-${each.key}"
   vpc_id = var.vpc_id
 
   target_type = "ip"
@@ -404,6 +405,7 @@ resource "aws_lb_listener_rule" "service" {
 resource "aws_lb_target_group" "replacement" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
+  name   = "${var.service_name}-green-target-${var.application_container.port}-key-${each.key}"
   vpc_id = var.vpc_id
 
   target_type = "ip"
