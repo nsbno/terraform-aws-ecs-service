@@ -209,7 +209,7 @@ data "aws_iam_policy_document" "load_balancer_and_target_groups" {
 }
 
 resource "aws_iam_role_policy" "for_load_balancers" {
-  role       = aws_iam_role.infrastructure_for_load_balancers.id
+  role   = aws_iam_role.infrastructure_for_load_balancers.id
   policy = data.aws_iam_policy_document.load_balancer_and_target_groups.json
 }
 
@@ -1202,4 +1202,6 @@ resource "aws_ssm_parameter" "ssm_parameters" {
   name  = "/__deployment__/applications/${var.service_name}/${each.key}"
   type  = "String"
   value = each.value
+
+  overwrite = true
 }
