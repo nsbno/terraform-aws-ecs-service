@@ -391,7 +391,7 @@ resource "aws_lb_listener_rule" "service" {
       # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
       # Can cause issues if migrating from an older version, using this module
       # "The ELB could not be updated due to the following error: Primary taskset target group must be behind listener"
-      # action[0]
+      action[0]
     ]
   }
 }
@@ -524,7 +524,7 @@ resource "aws_lb_listener_rule" "replacement" {
       #       We can not reference the target groups directly.
       #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
       # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
-      # action[0]
+      action[0]
     ]
   }
 }
