@@ -46,14 +46,14 @@ output "log_group_name" {
 output "target_group_arns" {
   description = "The ARNs of all created target groups"
   value = tomap({
-    for key, target_group in aws_lb_target_group.service : key => target_group.arn
+    for key, target_group in module.main_target_group : key => target_group.target_group_arn
   })
 }
 
 output "target_group_arn_suffixes" {
   description = "The ARNs of all created target groups"
   value = tomap({
-    for key, target_group in aws_lb_target_group.service : key => target_group.arn_suffix
+    for key, target_group in module.main_target_group : key => target_group.target_group_arn_suffix
   })
 }
 

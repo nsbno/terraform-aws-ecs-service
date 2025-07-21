@@ -209,7 +209,7 @@ data "aws_iam_policy_document" "load_balancer_and_target_groups" {
 }
 
 resource "aws_iam_role_policy" "for_load_balancers" {
-  role       = aws_iam_role.infrastructure_for_load_balancers.id
+  role   = aws_iam_role.infrastructure_for_load_balancers.id
   policy = data.aws_iam_policy_document.load_balancer_and_target_groups.json
 }
 
@@ -283,58 +283,41 @@ resource "aws_security_group_rule" "egress_service" {
  *
  * Setup load balancing with an existing loadbalancer.
  */
-resource "aws_lb_target_group" "service" {
+
+module "main_target_group" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
-  name   = "${var.service_name}-blue-target-${var.application_container.port}-key-${each.key}"
-  vpc_id = var.vpc_id
+  source = "./modules/target_group"
 
-  target_type = "ip"
-  port        = var.application_container.port
-  protocol    = var.application_container.protocol
+  service_name = "${var.service_name}-main-${var.application_container.port}-${each.key}"
+  vpc_id       = var.vpc_id
 
-  deregistration_delay = var.lb_deregistration_delay
+  service_port     = var.application_container.port
+  service_protocol = var.application_container.protocol
 
-  dynamic "health_check" {
-    for_each = [var.lb_health_check]
-
-    content {
-      enabled             = lookup(health_check.value, "enabled", null)
-      healthy_threshold   = lookup(health_check.value, "healthy_threshold", null)
-      interval            = lookup(health_check.value, "interval", null)
-      matcher             = lookup(health_check.value, "matcher", null)
-      path                = lookup(health_check.value, "path", null)
-      port                = lookup(health_check.value, "port", null)
-      protocol            = lookup(health_check.value, "protocol", null)
-      timeout             = lookup(health_check.value, "timeout", null)
-      unhealthy_threshold = lookup(health_check.value, "unhealthy_threshold", null)
-    }
-  }
-
-  dynamic "stickiness" {
-    for_each = var.lb_stickiness[*]
-    content {
-      type            = var.lb_stickiness.type
-      enabled         = var.lb_stickiness.enabled
-      cookie_duration = var.lb_stickiness.cookie_duration
-      cookie_name     = var.lb_stickiness.cookie_name
-    }
-  }
-
-  # NOTE: TF is unable to destroy a target group while a listener is attached,
-  # therefor we have to create a new one before destroying the old. This also means
-  # we have to let it have a random name, and then tag it with the desired name.
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = merge(
-    var.tags,
-    { Name = "${var.service_name}-target-${var.application_container.port}-${each.key}" }
-  )
+  lb_deregistration_delay = var.lb_deregistration_delay
+  lb_health_check         = var.lb_health_check
+  lb_stickiness           = var.lb_stickiness
 }
 
-resource "aws_lb_listener_rule" "service" {
+module "secondary_target_group" {
+  # For BLUE/GREEN deployments we need to have a secondary target group
+  for_each = { for idx, value in var.lb_listeners : idx => value }
+
+  source = "./modules/target_group"
+
+  service_name = "${var.service_name}-secondary-${var.application_container.port}-${each.key}"
+  vpc_id       = var.vpc_id
+
+  service_port     = var.application_container.port
+  service_protocol = var.application_container.protocol
+
+  lb_deregistration_delay = var.lb_deregistration_delay
+  lb_health_check         = var.lb_health_check
+  lb_stickiness           = var.lb_stickiness
+}
+
+resource "aws_lb_listener_rule" "main" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
   listener_arn = each.value.listener_arn
@@ -344,11 +327,11 @@ resource "aws_lb_listener_rule" "service" {
     type = "forward"
     forward {
       target_group {
-        arn    = aws_lb_target_group.service[each.key].arn
+        arn    = module.main_target_group[each.key].target_group_arn
         weight = 1
       }
       target_group {
-        arn    = aws_lb_target_group.replacement[each.key].arn
+        arn    = module.secondary_target_group[each.key].target_group_arn
         weight = 0
       }
     }
@@ -396,76 +379,19 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
-/*
- * ==== Blue listener setup
- *
- * TODO: This is just a plain copy paste of the above.
- *       Should probably refactor into a module
- */
-resource "aws_lb_target_group" "replacement" {
-  for_each = { for idx, value in var.lb_listeners : idx => value }
-
-  name   = "${var.service_name}-green-target-${var.application_container.port}-key-${each.key}"
-  vpc_id = var.vpc_id
-
-  target_type = "ip"
-  port        = var.application_container.port
-  protocol    = var.application_container.protocol
-
-  deregistration_delay = var.lb_deregistration_delay
-
-  dynamic "health_check" {
-    for_each = [var.lb_health_check]
-
-    content {
-      enabled             = lookup(health_check.value, "enabled", null)
-      healthy_threshold   = lookup(health_check.value, "healthy_threshold", null)
-      interval            = lookup(health_check.value, "interval", null)
-      matcher             = lookup(health_check.value, "matcher", null)
-      path                = lookup(health_check.value, "path", null)
-      port                = lookup(health_check.value, "port", null)
-      protocol            = lookup(health_check.value, "protocol", null)
-      timeout             = lookup(health_check.value, "timeout", null)
-      unhealthy_threshold = lookup(health_check.value, "unhealthy_threshold", null)
-    }
-  }
-
-  dynamic "stickiness" {
-    for_each = var.lb_stickiness[*]
-    content {
-      type            = var.lb_stickiness.type
-      enabled         = var.lb_stickiness.enabled
-      cookie_duration = var.lb_stickiness.cookie_duration
-      cookie_name     = var.lb_stickiness.cookie_name
-    }
-  }
-
-  # NOTE: TF is unable to destroy a target group while a listener is attached,
-  # therefor we have to create a new one before destroying the old. This also means
-  # we have to let it have a random name, and then tag it with the desired name.
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = merge(
-    var.tags,
-    { Name = "${var.service_name}-target-${var.application_container.port}-${each.key}" }
-  )
-}
-
-resource "aws_lb_listener_rule" "replacement" {
+resource "aws_lb_listener_rule" "secondary" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
   listener_arn = each.value.test_listener_arn
 
   # forward blocks require at least two target group blocks
   dynamic "action" {
-    for_each = length(aws_lb_target_group.replacement) > 1 ? [1] : []
+    for_each = length(module.secondary_target_group) > 1 ? [1] : []
     content {
       type = "forward"
       forward {
         target_group {
-          arn = aws_lb_target_group.replacement[each.key].arn
+          arn = module.secondary_target_group[each.key].target_group_arn
         }
         dynamic "stickiness" {
           for_each = var.lb_stickiness.enabled ? [1] : []
@@ -480,10 +406,10 @@ resource "aws_lb_listener_rule" "replacement" {
 
   # Use default forward type if only one target group is defined
   dynamic "action" {
-    for_each = length(aws_lb_target_group.replacement) == 1 ? [1] : []
+    for_each = length(module.secondary_target_group) == 1 ? [1] : []
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.replacement[each.key].arn
+      target_group_arn = module.secondary_target_group[each.key].target_group_arn
     }
   }
 
@@ -928,13 +854,13 @@ resource "aws_ecs_service" "service" {
     content {
       container_name   = var.application_container.name
       container_port   = var.application_container.port
-      target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
+      target_group_arn = module.main_target_group[load_balancer.key].target_group_arn
 
       advanced_configuration {
-        alternate_target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
-        production_listener_rule   = aws_lb_listener_rule.service[load_balancer.key].arn
+        alternate_target_group_arn = module.secondary_target_group[load_balancer.key].target_group_arn
+        production_listener_rule   = aws_lb_listener_rule.main[load_balancer.key].arn
         role_arn                   = aws_iam_role.infrastructure_for_load_balancers.arn
-        test_listener_rule         = aws_lb_listener_rule.replacement[load_balancer.key].arn
+        test_listener_rule         = aws_lb_listener_rule.secondary[load_balancer.key].arn
       }
     }
   }
@@ -1024,13 +950,13 @@ resource "aws_ecs_service" "service_with_autoscaling" {
     content {
       container_name   = var.application_container.name
       container_port   = var.application_container.port
-      target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
+      target_group_arn = module.main_target_group[load_balancer.key].target_group_arn
 
       advanced_configuration {
-        alternate_target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
-        production_listener_rule   = aws_lb_listener_rule.service[load_balancer.key].arn
+        alternate_target_group_arn = module.secondary_target_group[load_balancer.key].target_group_arn
+        production_listener_rule   = aws_lb_listener_rule.main[load_balancer.key].arn
         role_arn                   = aws_iam_role.infrastructure_for_load_balancers.arn
-        test_listener_rule         = aws_lb_listener_rule.replacement[load_balancer.key].arn
+        test_listener_rule         = aws_lb_listener_rule.secondary[load_balancer.key].arn
       }
     }
   }
