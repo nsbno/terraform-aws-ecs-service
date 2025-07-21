@@ -995,7 +995,17 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   # Because of this, we need to make these resources dynamic!
 
   deployment_controller {
-    type = "CODE_DEPLOY"
+    type = var.deployment_controller_type
+  }
+
+  deployment_circuit_breaker {
+    enable   = var.deployment_circuit_breaker.enable
+    rollback = var.deployment_circuit_breaker.rollback
+  }
+
+  deployment_configuration {
+    strategy             = var.deployment_configuration_strategy
+    bake_time_in_minutes = var.rollback_window_in_minutes
   }
 
   dynamic "network_configuration" {
@@ -1015,16 +1025,13 @@ resource "aws_ecs_service" "service_with_autoscaling" {
       container_name   = var.application_container.name
       container_port   = var.application_container.port
       target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
-    }
-  }
 
-  dynamic "load_balancer" {
-    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
-
-    content {
-      container_name   = var.application_container.name
-      container_port   = var.application_container.port
-      target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
+      advanced_configuration {
+        alternate_target_group_arn = aws_lb_target_group.replacement[load_balancer.key].arn
+        production_listener_rule   = aws_lb_listener_rule.service[load_balancer.key].arn
+        role_arn                   = aws_iam_role.infrastructure_for_load_balancers.arn
+        test_listener_rule         = aws_lb_listener_rule.replacement[load_balancer.key].arn
+      }
     }
   }
 
@@ -1050,7 +1057,7 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition, load_balancer, desired_count]
+    ignore_changes = [task_definition, desired_count]
 
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
