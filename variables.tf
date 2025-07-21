@@ -403,7 +403,7 @@ variable "deployment_circuit_breaker" {
 variable "deployment_configuration_strategy" {
   description = "The deployment strategy to use for the service. Valid values are ROLLING, BLUE_GREEN"
   type        = string
-  default     = "BLUE_GREEN"
+  default     = "ROLLING"
 
   validation {
     condition     = contains(["ROLLING", "BLUE_GREEN"], var.deployment_configuration_strategy)
