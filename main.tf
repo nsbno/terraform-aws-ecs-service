@@ -289,8 +289,7 @@ module "main_target_group" {
 
   source = "./modules/target_group"
 
-  service_name = "${var.service_name}-main-${var.application_container.port}-${each.key}"
-  vpc_id       = var.vpc_id
+  vpc_id = var.vpc_id
 
   service_port     = var.application_container.port
   service_protocol = var.application_container.protocol
@@ -298,6 +297,10 @@ module "main_target_group" {
   lb_deregistration_delay = var.lb_deregistration_delay
   lb_health_check         = var.lb_health_check
   lb_stickiness           = var.lb_stickiness
+
+  tags = {
+    Name = "${var.service_name}-main-${var.application_container.port}-${each.key}"
+  }
 }
 
 module "secondary_target_group" {
@@ -306,8 +309,7 @@ module "secondary_target_group" {
 
   source = "./modules/target_group"
 
-  service_name = "${var.service_name}-secondary-${var.application_container.port}-${each.key}"
-  vpc_id       = var.vpc_id
+  vpc_id = var.vpc_id
 
   service_port     = var.application_container.port
   service_protocol = var.application_container.protocol
@@ -315,6 +317,10 @@ module "secondary_target_group" {
   lb_deregistration_delay = var.lb_deregistration_delay
   lb_health_check         = var.lb_health_check
   lb_stickiness           = var.lb_stickiness
+
+  tags = {
+    Name = "${var.service_name}-main-${var.application_container.port}-${each.key}"
+  }
 }
 
 resource "aws_lb_listener_rule" "main" {

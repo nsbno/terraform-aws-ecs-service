@@ -1,5 +1,4 @@
 resource "aws_lb_target_group" "tg" {
-  name   = var.service_name
   vpc_id = var.vpc_id
 
   target_type = "ip"
@@ -41,8 +40,5 @@ resource "aws_lb_target_group" "tg" {
     create_before_destroy = true
   }
 
-  tags = merge(
-    var.tags,
-    { Name = var.service_name }
-  )
+  tags = var.tags
 }

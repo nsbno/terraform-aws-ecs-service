@@ -1,8 +1,3 @@
-variable "service_name" {
-  description = "The name of the service"
-  type        = string
-}
-
 variable "service_port" {
   description = "The port on which the application is listening"
   type        = number
@@ -25,7 +20,7 @@ variable "lb_deregistration_delay" {
 
 variable "lb_health_check" {
   description = "Health check configuration for the target group"
-  type = any
+  type        = any
 }
 
 variable "lb_stickiness" {
