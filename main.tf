@@ -738,7 +738,7 @@ resource "aws_ecs_task_definition" "task" {
         logDriver = "awslogs"
         options = {
           "awslogs-group" : aws_cloudwatch_log_group.main.name,
-          "awslogs-region" : data.aws_region.current.name,
+          "awslogs-region" : data.aws_region.current.region, # AWS Provider >= 6.0.0
           "awslogs-stream-prefix" : container.name
         }
       }
