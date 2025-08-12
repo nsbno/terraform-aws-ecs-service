@@ -660,13 +660,18 @@ module "env_vars_to_ssm_parameters" {
 
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
-  # TODO: Should refactor to something easier to maintain
-  application_container_with_image = merge(local.application_container, { image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}" })
-  init_container                   = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
+  # Override application container keys
+  application_container_with_overrides = merge(local.application_container, {
+    image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"
+    # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
+    environment = {}
+    secrets     = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets)
+  })
+  init_container = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [
     for container in flatten([
-      [local.application_container_with_image],
+      [local.application_container_with_overrides],
       var.sidecar_containers,
       var.digital_log_router_container,
       local.xray_container,
@@ -723,22 +728,18 @@ resource "aws_ecs_task_definition" "task" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
-      environment = []
-      secrets = concat(
-        [
-          for key, value in module.env_vars_to_ssm_parameters.ssm_parameter_arns : {
-            name      = key
-            valueFrom = value
-          }
-        ],
-        [
-          for key, value in container.secrets : {
-            name      = key
-            valueFrom = value
-          }
-        ]
-      )
+      environment = container.environment == null ? [] : [
+        for key, value in container.environment : {
+          name  = key
+          value = value
+        }
+      ]
+      secrets = container.secrets == null ? [] : [
+        for key, value in container.secrets : {
+          name      = key
+          valueFrom = value
+        }
+      ]
       portMappings = container.port == null ? [] : [
         {
           containerPort = tonumber(container.port)
@@ -791,22 +792,18 @@ resource "aws_ecs_task_definition" "task_datadog" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
-      environment = []
-      secrets = concat(
-        [
-          for key, value in module.env_vars_to_ssm_parameters.ssm_parameter_arns : {
-            name      = key
-            valueFrom = value
-          }
-        ],
-        [
-          for key, value in container.secrets : {
-            name      = key
-            valueFrom = value
-          }
-        ]
-      )
+      environment = [
+        for key, value in container.environment : {
+          name  = key
+          value = tostring(value)
+        }
+      ]
+      secrets = [
+        for key, value in container.secrets : {
+          name      = key
+          valueFrom = value
+        }
+      ]
       portMappings = container.port == null ? [] : [
         {
           containerPort = tonumber(container.port)
