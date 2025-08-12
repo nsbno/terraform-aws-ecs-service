@@ -655,7 +655,10 @@ module "env_vars_to_ssm_parameters" {
 
   service_name           = var.service_name
   task_execution_role_id = aws_iam_role.execution.id
-  environment_variables  = var.application_container.environment
+
+  environment_variables = var.application_container.environment
+  secrets               = var.application_container.secrets
+  secrets_to_override   = var.application_container.secrets_to_override
 }
 
 locals {

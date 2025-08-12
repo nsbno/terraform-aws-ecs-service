@@ -24,6 +24,8 @@ variable "application_container" {
 
     environment = optional(map(string), {})
     secrets     = optional(map(string), {})
+    # Will be used in env_vars_to_ssm_parameters to create secure SSM parameters to be overwritten
+    secrets_to_override = optional(map(string), {})
 
     cpu               = optional(number)
     memory_hard_limit = optional(number)

@@ -6,6 +6,25 @@ resource "aws_ssm_parameter" "environment_vars_to_ssm_parameters" {
   value = each.value
 }
 
+resource "aws_ssm_parameter" "secrets_to_ssm_parameters" {
+  for_each = var.secrets
+  name     = "/__${var.service_name}__/secrets/${each.key}"
+  type     = "SecureString"
+  value    = each.value
+}
+
+resource "aws_ssm_parameter" "secrets_to_overwrite_ssm_parameters" {
+  for_each = var.secrets_to_override
+
+  name  = "/__${var.service_name}__/secrets/${each.key}"
+  type  = "SecureString"
+  value = each.value
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_iam_role_policy" "task_execution" {
   count = var.environment_variables != {} ? 1 : 0
 
@@ -18,7 +37,11 @@ data "aws_iam_policy_document" "env_ssm_parameters_permissions" {
   statement {
     effect = "Allow"
 
-    resources = [for parameter in aws_ssm_parameter.environment_vars_to_ssm_parameters : parameter.arn]
+    resources = [for parameter in merge(
+      aws_ssm_parameter.environment_vars_to_ssm_parameters,
+      aws_ssm_parameter.secrets_to_ssm_parameters,
+      aws_ssm_parameter.secrets_to_overwrite_ssm_parameters
+    ) : parameter.arn]
 
     actions = [
       "ssm:GetParameter",

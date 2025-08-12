@@ -8,6 +8,8 @@ variable "application_container" {
 
     environment = optional(map(string))
     secrets     = optional(map(string))
+    # To ensure consistent container configuration
+    secrets_to_override = optional(map(string), {})
 
     cpu               = optional(number)
     memory_hard_limit = optional(number)
