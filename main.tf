@@ -650,6 +650,14 @@ module "autoinstrumentation_setup" {
   dd_team_tag = local.team_name_tag
 }
 
+module "env_vars_to_ssm_parameters" {
+  source = "./modules/env_vars_to_ssm_parameters"
+
+  service_name           = var.service_name
+  task_execution_role_id = aws_iam_role.execution.id
+  environment_variables  = var.application_container.environment
+}
+
 locals {
   application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   # TODO: Should refactor to something easier to maintain
@@ -715,18 +723,22 @@ resource "aws_ecs_task_definition" "task" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      environment = container.environment == null ? [] : [
-        for key, value in container.environment : {
-          name  = key
-          value = value
-        }
-      ]
-      secrets = container.secrets == null ? [] : [
-        for key, value in container.secrets : {
-          name      = key
-          valueFrom = value
-        }
-      ]
+      # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
+      environment = []
+      secrets = concat(
+        [
+          for key, value in module.env_vars_to_ssm_parameters.ssm_parameter_arns : {
+            name      = key
+            valueFrom = value
+          }
+        ],
+        [
+          for key, value in container.secrets : {
+            name      = key
+            valueFrom = value
+          }
+        ]
+      )
       portMappings = container.port == null ? [] : [
         {
           containerPort = tonumber(container.port)
@@ -779,18 +791,22 @@ resource "aws_ecs_task_definition" "task_datadog" {
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
       essential = container.essential
-      environment = [
-        for key, value in container.environment : {
-          name  = key
-          value = tostring(value)
-        }
-      ]
-      secrets = [
-        for key, value in container.secrets : {
-          name      = key
-          valueFrom = value
-        }
-      ]
+      # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
+      environment = []
+      secrets = concat(
+        [
+          for key, value in module.env_vars_to_ssm_parameters.ssm_parameter_arns : {
+            name      = key
+            valueFrom = value
+          }
+        ],
+        [
+          for key, value in container.secrets : {
+            name      = key
+            valueFrom = value
+          }
+        ]
+      )
       portMappings = container.port == null ? [] : [
         {
           containerPort = tonumber(container.port)
