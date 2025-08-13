@@ -184,7 +184,7 @@ data "aws_iam_policy_document" "load_balancers_assume" {
 }
 
 resource "aws_iam_role" "infrastructure_for_load_balancers" {
-  name               = "${var.service_name}-infrastructure-for-load-balancers"
+  name               = "${var.service_name}-lb"
   assume_role_policy = data.aws_iam_policy_document.load_balancers_assume.json
 }
 
