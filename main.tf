@@ -458,12 +458,12 @@ resource "aws_lb_listener_rule" "replacement" {
 
   # forward blocks require at least two target group blocks
   dynamic "action" {
-    for_each = length(aws_lb_target_group.secondary) > 1 ? [1] : []
+    for_each = length(aws_lb_target_group.service) > 1 ? [1] : []
     content {
       type = "forward"
       forward {
         target_group {
-          arn = aws_lb_target_group.secondary[each.key].arn
+          arn = aws_lb_target_group.service[each.key].arn
         }
         dynamic "stickiness" {
           for_each = var.lb_stickiness.enabled ? [1] : []
@@ -484,7 +484,6 @@ resource "aws_lb_listener_rule" "replacement" {
       target_group_arn = aws_lb_target_group.secondary[each.key].arn
     }
   }
-
 
   dynamic "condition" {
     for_each = each.value.conditions
@@ -526,7 +525,6 @@ resource "aws_lb_listener_rule" "replacement" {
     ]
   }
 }
-
 
 /*
  * = ECS Service
@@ -593,7 +591,7 @@ locals {
       image     = "public.ecr.aws/datadog/agent:latest",
       essential = true,
 
-      environment = {
+      environment = merge({
         ECS_FARGATE = "true"
 
         DD_SITE = "datadoghq.eu"
@@ -611,7 +609,7 @@ locals {
         # DATADOG Startup
         DD_TRACE_STARTUP_LOGS            = var.datadog_options.trace_startup_logs
         DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = var.datadog_options.trace_partial_flush_min_spans
-      },
+      }, var.datadog_environment_variables),
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
       }
@@ -647,6 +645,7 @@ module "autoinstrumentation_setup" {
 
   dd_service  = var.service_name
   dd_env      = local.environment
+  dd_version  = split(":", var.application_container.image)[1]
   dd_team_tag = local.team_name_tag
 }
 
@@ -700,8 +699,12 @@ locals {
     } if container != null
   ]
 
-  capacity_provider_strategy = {
+  capacity_provider_strategy_spot = {
     capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+  capacity_provider_strategy_on_demand = {
+    capacity_provider = "FARGATE"
     weight            = 1
   }
 }
@@ -902,13 +905,15 @@ resource "aws_ecs_service" "service" {
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.use_spot ? null : var.launch_type
+  # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
+  launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
   wait_for_steady_state              = var.wait_for_steady_state
   propagate_tags                     = var.propagate_tags
   enable_execute_command             = var.enable_execute_command
+  force_new_deployment               = var.force_new_deployment
 
   deployment_controller {
     type = var.deployment_controller_type
@@ -954,9 +959,9 @@ resource "aws_ecs_service" "service" {
   }
 
   # We set the service as a spot service through setting up the capacity_provider_strategy.
-  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
   dynamic "capacity_provider_strategy" {
-    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+    # Only use for Fargate launch type
+    for_each = var.launch_type != "FARGATE" ? [] : (var.use_spot ? [local.capacity_provider_strategy_spot] : [local.capacity_provider_strategy_on_demand])
 
     content {
       capacity_provider = capacity_provider_strategy.value.capacity_provider
@@ -997,13 +1002,15 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   cluster                            = var.cluster_id
   task_definition                    = local.task_definition.arn
   desired_count                      = var.desired_count
-  launch_type                        = var.use_spot ? null : var.launch_type
+  # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
+  launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
   deployment_maximum_percent         = var.deployment_maximum_percent
   health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
   wait_for_steady_state              = var.wait_for_steady_state
   propagate_tags                     = var.propagate_tags
   enable_execute_command             = var.enable_execute_command
+  force_new_deployment               = var.force_new_deployment
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
   # Because of this, we need to make these resources dynamic!
@@ -1052,7 +1059,8 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   # We set the service as a spot service through setting up the capacity_provider_strategy.
   # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
   dynamic "capacity_provider_strategy" {
-    for_each = var.use_spot ? [local.capacity_provider_strategy] : []
+    # Only use for Fargate launch type
+    for_each = var.launch_type != "FARGATE" ? [] : (var.use_spot ? [local.capacity_provider_strategy_spot] : [local.capacity_provider_strategy_on_demand])
 
     content {
       capacity_provider = capacity_provider_strategy.value.capacity_provider

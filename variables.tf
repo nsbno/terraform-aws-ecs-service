@@ -129,6 +129,12 @@ variable "use_spot" {
   default     = false
 }
 
+variable "force_new_deployment" {
+  description = "Whether to force a new deployment of the service. Required if you change from launch_type to capacity_provider_strategy or vice versa."
+  type        = bool
+  default     = false
+}
+
 variable "cpu" {
   description = "The amount of cores that are required for the service"
   type        = number
@@ -411,4 +417,10 @@ variable "deployment_configuration_strategy" {
     condition     = contains(["ROLLING", "BLUE_GREEN"], var.deployment_configuration_strategy)
     error_message = "The deployment_strategy must be one of: ROLLING, BLUE_GREEN"
   }
+}
+
+variable "datadog_environment_variables" {
+  description = "Additonal environment variables to set for the Datadog Agent Extension"
+  type        = map(string)
+  default     = {}
 }

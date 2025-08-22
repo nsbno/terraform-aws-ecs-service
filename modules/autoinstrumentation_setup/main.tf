@@ -43,14 +43,14 @@ locals {
       environment = {
         JAVA_TOOL_OPTIONS = "-javaagent:/datadog-instrumentation-init/package/dd-java-agent.jar"
 
-        DD_LOGS_INJECTION    = "true"
-        DD_PROFILING_ENABLED = "true"
+        DD_LOGS_INJECTION    = true
+        DD_PROFILING_ENABLED = true
 
         # Remove "java-aws-sdk" and make it the same name as DD_SERVICE
-        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED    = "true"
-        DD_DATA_STREAMS_ENABLED                              = "true"
-        DD_TRACE_SQS_BODY_PROPAGATION_ENABLED                = "true"
-        DD_INTEGRATION_KOTLIN_COROUTINE_EXPERIMENTAL_ENABLED = "true"
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED    = true
+        DD_DATA_STREAMS_ENABLED                              = true
+        DD_TRACE_SQS_BODY_PROPAGATION_ENABLED                = true
+        DD_INTEGRATION_KOTLIN_COROUTINE_EXPERIMENTAL_ENABLED = true
 
         # Allow for dynamic instrumentation
         DD_DYNAMIC_INSTRUMENTATION_ENABLED = true
@@ -79,8 +79,8 @@ locals {
       environment = {
         NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
 
-        DD_LOGS_INJECTION    = "true"
-        DD_PROFILING_ENABLED = "true"
+        DD_LOGS_INJECTION    = true
+        DD_PROFILING_ENABLED = true
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
