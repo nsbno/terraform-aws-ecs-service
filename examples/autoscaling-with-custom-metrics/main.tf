@@ -40,10 +40,20 @@ data "aws_lb" "main" {
   name = "${local.name_prefix}-alb"
 }
 
-data "aws_lb_listener" "http" {
-  #  Reference your existing ALB listener which usually is created centrally in -aws repo
+data "aws_lb_listener" "https" {
   load_balancer_arn = data.aws_lb.main.arn
-  port              = 80
+  port              = 443
+}
+
+data "aws_lb_listener" "https_test" {
+  load_balancer_arn = data.aws_lb.main.arn
+  port              = 8443
+}
+
+
+data "aws_ecr_repository" "this" {
+  name        = "infrademo-demo-repo"
+  registry_id = "123456789012" # service account id
 }
 
 /*
@@ -61,15 +71,16 @@ module "service" {
 
   application_container = {
     # Input your application container
-    name     = "main"
-    image    = "nginx:latest"
-    port     = 80
-    protocol = "HTTP"
+    name           = "main"
+    repository_url = data.aws_ecr_repository.this.repository_url
+    port           = 80
+    protocol       = "HTTP"
   }
 
   lb_listeners = [
     {
-      listener_arn      = data.aws_lb_listener.http.arn
+      listener_arn      = data.aws_lb_listener.https.arn
+      test_listener_arn = data.aws_lb_listener.https_test.arn
       security_group_id = one(data.aws_lb.main.security_groups)
       conditions = [
         {

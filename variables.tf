@@ -17,13 +17,15 @@ variable "cluster_id" {
 variable "application_container" {
   description = "The application that is being run by the service"
   type = object({
-    name      = string
-    image     = string
-    essential = optional(bool, true)
-    command   = optional(string)
+    name           = string
+    repository_url = string
+    essential      = optional(bool, true)
+    command        = optional(string)
 
     environment = optional(map(string), {})
     secrets     = optional(map(string), {})
+    # Will be used in env_vars_to_ssm_parameters to create secure SSM parameters to be overwritten
+    secrets_to_override = optional(map(string), {})
 
     cpu               = optional(number)
     memory_hard_limit = optional(number)
@@ -41,6 +43,33 @@ variable "application_container" {
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
+  type = list(object({
+    name      = string
+    image     = string
+    essential = optional(bool, true)
+    command   = optional(string)
+
+    environment = optional(map(string))
+    secrets     = optional(map(string))
+
+    cpu               = optional(number)
+    memory_hard_limit = optional(number)
+    memory_soft_limit = optional(number)
+
+    port             = optional(number)
+    protocol         = optional(string)
+    network_protocol = optional(string, "tcp")
+
+    health_check = optional(any)
+
+    extra_options = optional(any)
+  }))
+  default = []
+}
+
+variable "digital_log_router_container" {
+  # TODO Delete and refactor digital module into this
+  description = "Digital sidecar for the main application"
   type = list(object({
     name      = string
     image     = string
@@ -122,6 +151,7 @@ variable "lb_listeners" {
   description = "Configuration for load balancing. Note: each condition needs to be wrapped in a separate block"
   type = list(object({
     listener_arn      = string
+    test_listener_arn = string
     security_group_id = string
 
     conditions = list(object({
@@ -265,12 +295,6 @@ variable "deployment_maximum_percent" {
   description = "The upper limit of the number of running tasks that can be running in a service during a deployment"
 }
 
-variable "deployment_controller_type" {
-  description = "Type of deployment controller. Valid values: CODE_DEPLOY, ECS."
-  type        = string
-  default     = "ECS"
-}
-
 variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
@@ -350,6 +374,48 @@ variable "datadog_options" {
     trace_startup_logs            = false # Datadog default is true.
     trace_partial_flush_min_spans = 2000  # Datadog default is 1000.
     # We set 2000 so the smallest vCPU instances can handle it.
+  }
+}
+
+variable "rollback_window_in_minutes" {
+  description = "Time in minutes to wait before terminating the old tasks."
+  type        = number
+
+  default = 0
+}
+
+# Deployment variables
+variable "deployment_controller_type" {
+  description = "The type of deployment controller to use. Valid values are ECS, CODE_DEPLOY, EXTERNAL"
+  type        = string
+  default     = "ECS"
+
+  validation {
+    condition     = contains(["ECS", "CODE_DEPLOY", "EXTERNAL"], var.deployment_controller_type)
+    error_message = "The deployment_controller_type must be one of: ECS, CODE_DEPLOY, EXTERNAL"
+  }
+}
+
+variable "deployment_circuit_breaker" {
+  description = "Configuration block for the deployment circuit breaker. If set, it will enable the circuit breaker for the service."
+  type = object({
+    enable   = bool
+    rollback = bool
+  })
+  default = {
+    enable   = true
+    rollback = true
+  }
+}
+
+variable "deployment_configuration_strategy" {
+  description = "The deployment strategy to use for the service. Valid values are ROLLING, BLUE_GREEN"
+  type        = string
+  default     = "ROLLING"
+
+  validation {
+    condition     = contains(["ROLLING", "BLUE_GREEN"], var.deployment_configuration_strategy)
+    error_message = "The deployment_strategy must be one of: ROLLING, BLUE_GREEN"
   }
 }
 

@@ -1,13 +1,15 @@
 variable "application_container" {
   description = "The application that is being run by the service"
   type = object({
-    name      = string
-    image     = string
-    essential = optional(bool, true)
-    command   = optional(string)
+    name           = string
+    repository_url = string
+    essential      = optional(bool, true)
+    command        = optional(string)
 
     environment = optional(map(string))
     secrets     = optional(map(string))
+    # To ensure consistent container configuration
+    secrets_to_override = optional(map(string), {})
 
     cpu               = optional(number)
     memory_hard_limit = optional(number)
@@ -34,10 +36,6 @@ variable "dd_service" {
 }
 
 variable "dd_env" {
-  type = string
-}
-
-variable "dd_version" {
   type = string
 }
 
