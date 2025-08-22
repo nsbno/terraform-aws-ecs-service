@@ -645,7 +645,6 @@ module "autoinstrumentation_setup" {
 
   dd_service  = var.service_name
   dd_env      = local.environment
-  dd_version  = split(":", var.application_container.image)[1]
   dd_team_tag = local.team_name_tag
 }
 
