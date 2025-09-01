@@ -553,7 +553,7 @@ data "aws_ssm_parameter" "deployment_version" {
 }
 
 data "aws_ssm_parameter" "team_name" {
-  count = var.enable_datadog ? 1 : 0
+  count = var.enable_datadog && var.team_name_override == null ? 1 : 0
 
   name = "/__platform__/team_name_handle"
 }
@@ -576,8 +576,8 @@ locals {
 
   # non sensitive team name value to avoid recreation of the task definition
   team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? nonsensitive(data.aws_ssm_parameter.team_name[0].value) : null
-  team_name_tag          = local.team_name != null ? format("team:%s", local.team_name) : null
-  datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
+  team_name_tag          = var.team_name_override != null ? format("team:%s", var.team_name_override) : (local.team_name != null ? format("team:%s", local.team_name) : null)
+  datadog_api_key_secret = var.datadog_api_key_secret_arn != null ? var.datadog_api_key_secret_arn : data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   # The account alias includes the name of the environment we are in as a suffix
@@ -674,7 +674,6 @@ locals {
     for container in flatten([
       [local.application_container_with_overrides],
       var.sidecar_containers,
-      var.digital_log_router_container,
       local.xray_container,
       # We need to handle the case where datadog_containers is null, the variable expects a tuple of two objects
       local.datadog_containers != null ? local.datadog_containers : [null, null],
@@ -900,10 +899,10 @@ resource "aws_ecs_service" "service" {
   count      = var.autoscaling == null ? 1 : 0
   depends_on = [terraform_data.no_launch_type_and_spot]
 
-  name                               = var.service_name
-  cluster                            = var.cluster_id
-  task_definition                    = local.task_definition.arn
-  desired_count                      = var.desired_count
+  name            = var.service_name
+  cluster         = var.cluster_id
+  task_definition = local.task_definition.arn
+  desired_count   = var.desired_count
   # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
   launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
@@ -997,10 +996,10 @@ resource "aws_ecs_service" "service_with_autoscaling" {
   count      = var.autoscaling != null ? 1 : 0
   depends_on = [terraform_data.no_launch_type_and_spot]
 
-  name                               = var.service_name
-  cluster                            = var.cluster_id
-  task_definition                    = local.task_definition.arn
-  desired_count                      = var.desired_count
+  name            = var.service_name
+  cluster         = var.cluster_id
+  task_definition = local.task_definition.arn
+  desired_count   = var.desired_count
   # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
   launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent

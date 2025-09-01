@@ -67,33 +67,6 @@ variable "sidecar_containers" {
   default = []
 }
 
-variable "digital_log_router_container" {
-  # TODO Delete and refactor digital module into this
-  description = "Digital sidecar for the main application"
-  type = list(object({
-    name      = string
-    image     = string
-    essential = optional(bool, true)
-    command   = optional(string)
-
-    environment = optional(map(string))
-    secrets     = optional(map(string))
-
-    cpu               = optional(number)
-    memory_hard_limit = optional(number)
-    memory_soft_limit = optional(number)
-
-    port             = optional(number)
-    protocol         = optional(string)
-    network_protocol = optional(string, "tcp")
-
-    health_check = optional(any)
-
-    extra_options = optional(any)
-  }))
-  default = []
-}
-
 variable "launch_type" {
   description = "What to launch the instance on. Mutually exclusive with \"use_spot\"."
   type        = string
@@ -423,4 +396,21 @@ variable "datadog_environment_variables" {
   description = "Additonal environment variables to set for the Datadog Agent Extension"
   type        = map(string)
   default     = {}
+}
+
+variable "datadog_api_key_secret_arn" {
+  description = "ARN of the Datadog API Key secret in AWS Secrets Manager"
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.datadog_api_key_secret_arn == null || can(regex("^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9/_+=.@-]+$", var.datadog_api_key_secret_arn))
+    error_message = "Datadog API Key must be a valid ARN of a secret in AWS Secrets Manager."
+  }
+}
+
+variable "team_name_override" {
+  description = "Override the team name tag for Datadog. If set, this will override the value from the SSM parameter."
+  type        = string
+  default     = null
 }
