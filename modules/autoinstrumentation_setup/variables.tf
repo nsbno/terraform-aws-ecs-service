@@ -9,6 +9,7 @@ variable "application_container" {
     environment = optional(map(string))
     secrets     = optional(map(string))
     # To ensure consistent container configuration
+    secrets_from_ssm    = optional(map(string))
     secrets_to_override = optional(map(string), {})
 
     cpu               = optional(number)

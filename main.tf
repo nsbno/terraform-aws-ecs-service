@@ -666,7 +666,7 @@ locals {
     image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
     environment = {}
-    secrets     = module.env_vars_to_ssm_parameters.ssm_parameter_arns
+    secrets     = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets_from_ssm)
   })
   init_container = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
