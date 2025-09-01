@@ -22,8 +22,8 @@ variable "application_container" {
     essential      = optional(bool, true)
     command        = optional(string)
 
-    environment      = optional(map(string), {})
-    secrets          = optional(map(string), {})
+    environment = optional(map(string), {})
+    secrets     = optional(map(string), {})
     # For users providing SSM parameter arn directly
     secrets_from_ssm = optional(map(string), {})
     # Will be used in env_vars_to_ssm_parameters to create secure SSM parameters to be overwritten

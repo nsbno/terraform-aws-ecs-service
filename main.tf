@@ -612,6 +612,7 @@ locals {
       }, var.datadog_environment_variables),
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
+        DD_VERSION = data.aws_ssm_parameter.deployment_version.arn
       }
     },
     {
