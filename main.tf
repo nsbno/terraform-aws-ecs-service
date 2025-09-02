@@ -82,6 +82,19 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       local.datadog_api_key_kms
     ]
   }
+
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters"
+    ]
+
+    resources = [
+      data.aws_ssm_parameter.deployment_version.arn
+    ]
+  }
 }
 
 /*
