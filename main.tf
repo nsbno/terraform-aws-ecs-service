@@ -654,7 +654,6 @@ module "autoinstrumentation_setup" {
 
   count = var.datadog_instrumentation_runtime == null ? 0 : 1
 
-  application_container           = var.application_container
   datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
 
   dd_service  = var.service_name
@@ -674,14 +673,15 @@ module "env_vars_to_ssm_parameters" {
 }
 
 locals {
-  application_container = var.datadog_instrumentation_runtime == null ? var.application_container : module.autoinstrumentation_setup[0].application_container_definition
   # Override application container keys
-  application_container_with_overrides = merge(local.application_container, {
+  application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
-    environment = {}
-    secrets     = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets_from_ssm)
-  })
+    environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
+    secrets       = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets_from_ssm)
+    extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
+    }
+  )
   init_container = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [

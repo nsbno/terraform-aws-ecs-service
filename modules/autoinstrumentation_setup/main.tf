@@ -107,31 +107,20 @@ locals {
 # Construct a new application container definition
 # This is a bit of a hack because we can't really modify a map in a good way
 locals {
-  new_environment = {
-    environment = merge(
-      lookup(var.application_container, "environment", null),
-      local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["environment"]
-    )
+  new_definition = {
+    environment   = local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["environment"]
+    extra_options = local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["extra_options"]
   }
-
-  new_extra_options = {
-    extra_options = merge(
-      lookup(var.application_container, "extra_options", null),
-      local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["extra_options"]
-    )
-  }
-
-  new_definition = merge(
-    var.application_container,
-    local.new_environment,
-    local.new_extra_options
-  )
-}
-
-output "application_container_definition" {
-  value = local.new_definition
 }
 
 output "init_container_definition" {
   value = local.init_container[var.datadog_instrumentation_runtime]
+}
+
+output "new_environment" {
+  value = local.new_definition.environment
+}
+
+output "new_extra_options" {
+  value = local.new_definition.extra_options
 }
