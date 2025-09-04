@@ -591,6 +591,7 @@ locals {
   team_name              = var.enable_datadog && length(data.aws_ssm_parameter.team_name) > 0 ? nonsensitive(data.aws_ssm_parameter.team_name[0].value) : null
   team_name_tag          = var.team_name_override != null ? format("team:%s", var.team_name_override) : (local.team_name != null ? format("team:%s", local.team_name) : null)
   datadog_api_key_secret = var.datadog_api_key_secret_arn != null ? var.datadog_api_key_secret_arn : data.aws_secretsmanager_secret.datadog_agent_api_key.arn
+  # KMS key for Utvikling API Key
   datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   # The account alias includes the name of the environment we are in as a suffix
@@ -856,7 +857,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       dockerLabels = {
         "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
-        "com.datadoghq.tags.team"    = local.team_name
+        "com.datadoghq.tags.team"    = var.team_name_override != null ? var.team_name_override : local.team_name
       }
 
       # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
