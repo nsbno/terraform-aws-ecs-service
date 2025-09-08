@@ -394,6 +394,16 @@ variable "deployment_configuration_strategy" {
   }
 }
 
+variable "lifecycle_hooks" {
+  description = "Configuration for lifecycle hooks."
+  type = list(object({
+    hook_target_arn  = string
+    role_arn         = string
+    lifecycle_stages = list(string)
+  }))
+  default = []
+}
+
 variable "datadog_environment_variables" {
   description = "Additonal environment variables to set for the Datadog Agent Extension"
   type        = map(string)

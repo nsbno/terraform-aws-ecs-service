@@ -940,6 +940,15 @@ resource "aws_ecs_service" "service" {
   deployment_configuration {
     strategy             = var.deployment_configuration_strategy
     bake_time_in_minutes = var.rollback_window_in_minutes
+
+    dynamic "lifecycle_hook" {
+      for_each = var.lifecycle_hooks
+      content {
+        hook_target_arn  = lifecycle_hook.value.hook_target_arn
+        role_arn         = lifecycle_hook.value.role_arn
+        lifecycle_stages = lifecycle_hook.value.lifecycle_stages
+      }
+    }
   }
 
   # ECS Anywhere doesn't support VPC networking or load balancers.
