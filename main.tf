@@ -592,7 +592,7 @@ locals {
   team_name_tag          = var.team_name_override != null ? format("team:%s", var.team_name_override) : (local.team_name != null ? format("team:%s", local.team_name) : null)
   datadog_api_key_secret = var.datadog_api_key_secret_arn != null ? var.datadog_api_key_secret_arn : data.aws_secretsmanager_secret.datadog_agent_api_key.arn
   # KMS key for Utvikling API Key
-  datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
+  datadog_api_key_kms = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
 
   # The account alias includes the name of the environment we are in as a suffix
   split_alias       = split("-", data.aws_iam_account_alias.this.account_alias)
