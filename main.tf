@@ -681,6 +681,8 @@ locals {
     environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
     secrets       = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets_from_ssm)
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
+    # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
+    extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? [var.lb_health_check.port] : []
     }
   )
   init_container = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
@@ -759,13 +761,15 @@ resource "aws_ecs_task_definition" "task" {
           valueFrom = value
         }
       ]
-      portMappings = container.port == null ? [] : [
-        {
-          containerPort = tonumber(container.port)
-          hostPort      = tonumber(container.port)
-          protocol      = container.network_protocol
-        }
-      ]
+      portMappings = container.port == null ? [] : concat(
+        [for port in concat([container.port], local.application_container_with_overrides.extra_ports) :
+          {
+            containerPort = tonumber(port)
+            hostPort      = tonumber(port)
+            protocol      = container.network_protocol
+          }
+        ]
+      )
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -823,13 +827,15 @@ resource "aws_ecs_task_definition" "task_datadog" {
           valueFrom = value
         }
       ]
-      portMappings = container.port == null ? [] : [
-        {
-          containerPort = tonumber(container.port)
-          hostPort      = tonumber(container.port)
-          protocol      = container.network_protocol
-        }
-      ]
+      portMappings = container.port == null ? [] : concat(
+        [for port in concat([container.port], local.application_container_with_overrides.extra_ports) :
+          {
+            containerPort = tonumber(port)
+            hostPort      = tonumber(port)
+            protocol      = container.network_protocol
+          }
+        ]
+      )
 
       logConfiguration = {
         logDriver = "awsfirelens",
