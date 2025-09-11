@@ -26,7 +26,7 @@ resource "aws_ssm_parameter" "secrets_to_overwrite_ssm_parameters" {
 }
 
 resource "aws_iam_role_policy" "task_execution" {
-  count = var.environment_variables != {} ? 1 : 0
+  count = length(var.environment_variables) > 0 ? 1 : 0
 
   name   = "${var.service_name}-task-execution-ssm-parameters-policy"
   role   = var.task_execution_role_id
