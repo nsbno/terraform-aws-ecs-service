@@ -141,6 +141,25 @@ variable "lb_listeners" {
   default = []
 }
 
+variable "additional_rule_lb_listeners" {
+  description = "Configuration for load balancing. Note: each condition needs to be wrapped in a separate block"
+  type = list(object({
+    listener_arn      = string
+    test_listener_arn = string
+    security_group_id = string
+
+    conditions = list(object({
+      path_pattern = optional(string)
+      host_header  = optional(any)
+      http_header = optional(object({
+        name   = string
+        values = list(string)
+      }))
+    }))
+  }))
+  default = []
+}
+
 variable "placement_constraints" {
   description = "Placement constraints for the service. Note: A maximum of 10 placement constraints may be added to a service. Used to force deployment to specific instances. Not valid for FARGATE launch type."
   type = list(object({

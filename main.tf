@@ -408,6 +408,70 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
+resource "aws_lb_listener_rule" "additional_rule" {
+  for_each = { for idx, value in var.additional_rule_lb_listeners : idx => value }
+
+  listener_arn = each.value.listener_arn
+
+  # Use default forward type if only one target group is defined
+  action {
+    type = "forward"
+    forward {
+      target_group {
+        arn    = aws_lb_target_group.service[each.key].arn
+        weight = 1
+      }
+      target_group {
+        arn    = aws_lb_target_group.secondary[each.key].arn // må endres?
+        weight = 0
+      }
+    }
+  }
+
+  dynamic "condition" {
+    for_each = each.value.conditions
+
+    content {
+      dynamic "path_pattern" {
+        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
+        content {
+          values = [path_pattern.value]
+        }
+      }
+
+      dynamic "host_header" {
+        for_each = condition.value.host_header != null ? [condition.value.host_header] : []
+        content {
+          values = flatten([host_header.value]) # Accept both a string or a list
+        }
+      }
+      dynamic "http_header" {
+        for_each = condition.value.http_header != null ? [condition.value.http_header] : []
+        content {
+          http_header_name = http_header.value.name
+          values           = http_header.value.values
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # NOTE: This is bound to cause some issues at some point.
+      #       This is required because CodeDeploy will take charge of the weighting
+      #       after the initial deploy.
+      #       We can not reference the target groups directly.
+      #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
+      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      # Can cause issues if migrating from an older version, using this module
+      # "The ELB could not be updated due to the following error: Primary taskset target group must be behind listener"
+      action[0]
+    ]
+  }
+}
+
+////
+
 /*
  * ==== Blue listener setup
  *
@@ -466,6 +530,81 @@ resource "aws_lb_target_group" "secondary" {
 
 resource "aws_lb_listener_rule" "replacement" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
+
+  listener_arn = each.value.test_listener_arn
+
+  # forward blocks require at least two target group blocks
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.service) > 1 ? [1] : []
+    content {
+      type = "forward"
+      forward {
+        target_group {
+          arn = aws_lb_target_group.service[each.key].arn
+        }
+        dynamic "stickiness" {
+          for_each = var.lb_stickiness.enabled ? [1] : []
+          content {
+            enabled  = true
+            duration = var.lb_stickiness.cookie_duration
+          }
+        }
+      }
+    }
+  }
+
+  # Use default forward type if only one target group is defined
+  dynamic "action" {
+    for_each = length(aws_lb_target_group.secondary) == 1 ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.secondary[each.key].arn
+    }
+  }
+
+  dynamic "condition" {
+    for_each = each.value.conditions
+
+    content {
+      dynamic "path_pattern" {
+        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
+        content {
+          values = [path_pattern.value]
+        }
+      }
+
+      dynamic "host_header" {
+        for_each = condition.value.host_header != null ? [condition.value.host_header] : []
+        content {
+          values = flatten([host_header.value]) # Accept both a string or a list
+        }
+      }
+
+      dynamic "http_header" {
+        for_each = condition.value.http_header != null ? [condition.value.http_header] : []
+        content {
+          http_header_name = http_header.value.name
+          values           = http_header.value.values
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      # NOTE: This is bound to cause some issues at some point.
+      #       This is required because CodeDeploy will take charge of the weighting
+      #       after the initial deploy.
+      #       We can not reference the target groups directly.
+      #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
+      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      action[0]
+    ]
+  }
+}
+
+resource "aws_lb_listener_rule" "additional_rule_replacement" {
+  for_each = { for idx, value in var.additional_rule_lb_listeners : idx => value }
 
   listener_arn = each.value.test_listener_arn
 
