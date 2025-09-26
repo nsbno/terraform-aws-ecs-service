@@ -51,7 +51,7 @@ output "target_group_arns" {
 }
 
 output "target_group_arn_suffixes" {
-  description = "The ARNs of all created target groups"
+  description = "The ARN suffixes of all created target groups"
   value = tomap({
     for key, target_group in aws_lb_target_group.service : key => target_group.arn_suffix
   })
