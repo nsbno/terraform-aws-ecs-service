@@ -57,6 +57,20 @@ output "target_group_arn_suffixes" {
   })
 }
 
+output "secondary_target_group_arns" {
+  description = "The ARNs of all created secondary target groups"
+  value = tomap({
+    for key, target_group in aws_lb_target_group.secondary : key => target_group.arn
+  })
+}
+
+output "secondary_target_group_arn_suffixes" {
+  description = "The ARN suffixes of all created secondary target groups"
+  value = tomap({
+    for key, target_group in aws_lb_target_group.secondary : key => target_group.arn_suffix
+  })
+}
+
 output "cpu" {
   description = "How many vCPUs the task definition runs on"
   value       = var.cpu
