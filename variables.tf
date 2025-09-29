@@ -130,27 +130,12 @@ variable "lb_listeners" {
     security_group_id = string
 
     conditions = list(object({
-      path_pattern = optional(string)
-      host_header  = optional(any)
-      http_header = optional(object({
-        name   = string
+      path_pattern = optional(object({
         values = list(string)
       }))
-    }))
-  }))
-  default = []
-}
-
-variable "additional_rule_lb_listeners" {
-  description = "Configuration for load balancing. Note: each condition needs to be wrapped in a separate block"
-  type = list(object({
-    listener_arn      = string
-    test_listener_arn = string
-    security_group_id = string
-
-    conditions = list(object({
-      path_pattern = optional(string)
-      host_header  = optional(any)
+      host_header = optional(object({
+        values = list(string)
+      }))
       http_header = optional(object({
         name   = string
         values = list(string)
