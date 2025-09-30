@@ -137,6 +137,14 @@ variable "lb_listeners" {
         values = list(string)
       }))
     }))
+    additional_conditions = optional(list(object({
+      path_pattern = optional(string)
+      host_header  = optional(any)
+      http_header = optional(object({
+        name   = string
+        values = list(string)
+      }))
+    })), [])
   }))
   default = []
 }
