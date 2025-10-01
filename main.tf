@@ -347,6 +347,7 @@ resource "aws_lb_target_group" "service" {
 }
 
 locals {
+  # Additional conditions create new listener rules not covered by AND or OR logic for existing rules
   all_listener_conditions = flatten([
     for idx, value in var.lb_listeners : concat(
       [
