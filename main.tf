@@ -346,8 +346,31 @@ resource "aws_lb_target_group" "service" {
   )
 }
 
+locals {
+  # Additional conditions create new listener rules not covered by AND or OR logic for existing rules
+  all_listener_conditions = flatten([
+    for idx, value in var.lb_listeners : concat(
+      [
+        {
+          key               = idx
+          listener_arn      = value.listener_arn
+          test_listener_arn = value.test_listener_arn
+          conditions        = value.conditions
+          target_group_key  = idx
+        }
+      ],
+      [for rule_idx, rule in try(value.additional_conditions, []) : {
+        key               = "${idx}-additional-${rule_idx}"
+        listener_arn      = value.listener_arn
+        test_listener_arn = value.test_listener_arn
+        conditions        = [rule]
+        target_group_key  = idx
+      }]
+  )])
+}
+
 resource "aws_lb_listener_rule" "service" {
-  for_each = { for idx, value in var.lb_listeners : idx => value }
+  for_each = { for lc in local.all_listener_conditions : lc.key => lc }
 
   listener_arn = each.value.listener_arn
 
@@ -356,11 +379,11 @@ resource "aws_lb_listener_rule" "service" {
     type = "forward"
     forward {
       target_group {
-        arn    = aws_lb_target_group.service[each.key].arn
+        arn    = aws_lb_target_group.service[each.value.target_group_key].arn
         weight = 1
       }
       target_group {
-        arn    = aws_lb_target_group.secondary[each.key].arn
+        arn    = aws_lb_target_group.secondary[each.value.target_group_key].arn
         weight = 0
       }
     }
@@ -465,7 +488,7 @@ resource "aws_lb_target_group" "secondary" {
 }
 
 resource "aws_lb_listener_rule" "replacement" {
-  for_each = { for idx, value in var.lb_listeners : idx => value }
+  for_each = { for lc in local.all_listener_conditions : lc.key => lc }
 
   listener_arn = each.value.test_listener_arn
 
@@ -476,7 +499,7 @@ resource "aws_lb_listener_rule" "replacement" {
       type = "forward"
       forward {
         target_group {
-          arn = aws_lb_target_group.service[each.key].arn
+          arn = aws_lb_target_group.service[each.value.target_group_key].arn
         }
         dynamic "stickiness" {
           for_each = var.lb_stickiness.enabled ? [1] : []
@@ -494,7 +517,7 @@ resource "aws_lb_listener_rule" "replacement" {
     for_each = length(aws_lb_target_group.secondary) == 1 ? [1] : []
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.secondary[each.key].arn
+      target_group_arn = aws_lb_target_group.secondary[each.value.target_group_key].arn
     }
   }
 

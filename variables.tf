@@ -137,6 +137,15 @@ variable "lb_listeners" {
         values = list(string)
       }))
     }))
+    # Additional conditions create new listener rules not covered by AND or OR logic for existing rules
+    additional_conditions = optional(list(object({
+      path_pattern = optional(string)
+      host_header  = optional(any)
+      http_header = optional(object({
+        name   = string
+        values = list(string)
+      }))
+    })), [])
   }))
   default = []
 }
