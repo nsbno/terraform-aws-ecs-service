@@ -90,32 +90,34 @@ module "service" {
     }
   ]
 
-  autoscaling = {
-    min_capacity = 1
-    max_capacity = 3
-    metric_type  = ""
-    target_value = "100"
-  }
+  autoscaling_min_capacity = 1
+  autoscaling_max_capacity = 3
 
-  custom_metrics = [
+  autoscaling_policies = [
     {
-      label = "Get the queue size (the number of messages waiting to be processed)"
-      id    = "m1"
-      metric_stat = {
-        metric = {
-          metric_name = "ApproximateNumberOfMessagesVisible"
-          namespace   = "AWS/SQS"
-          dimensions = [
-            {
-              name  = "QueueName"
-              value = "my-queue"
+      target_value = "100"
+      custom_metrics = [
+        {
+          label = "Get the queue size (the number of messages waiting to be processed)"
+          id    = "m1"
+          metric_stat = {
+            metric = {
+              metric_name = "ApproximateNumberOfMessagesVisible"
+              namespace   = "AWS/SQS"
+              dimensions = [
+                {
+                  name  = "QueueName"
+                  value = "my-queue"
+                }
+              ]
             }
-          ]
+            stat = "Sum"
+          }
+          return_data = true
         }
-        stat = "Sum"
-      }
-      return_data = true
+      ]
     }
+    # Add more policies if needed
   ]
 
   autoscaling_schedule = {

@@ -183,23 +183,44 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "autoscaling" {
-  description = "Enable autoscaling for the service"
-  type = object({
-    min_capacity       = number
-    max_capacity       = number
-    metric_type        = string
-    target_value       = string
-    scale_in_cooldown  = optional(number, null) # in seconds
-    scale_out_cooldown = optional(number, null) # in seconds
-  })
-  default = null
+variable "autoscaling_min_capacity" {
+  description = "The minimum number of instances to scale to."
+  type        = number
+  default     = 1
 }
 
-variable "autoscaling_resource_label" {
-  description = "Must be set if autoscaling metric type is ALBRequestCountPerTarget. Value must be equal to lb.arn_suffix/target_group.arn_suffix. Example: app/lb-name/lb-id/targetgroup/targetgroup-name/target-group-id"
-  type        = string
-  default     = ""
+variable "autoscaling_max_capacity" {
+  description = "The maximum number of instances to scale to."
+  type        = number
+  default     = 1
+}
+
+variable "autoscaling_policies" {
+  description = "Enable autoscaling for the service"
+  type = list(object({
+    target_value       = number
+    scale_in_cooldown  = optional(number)
+    scale_out_cooldown = optional(number)
+
+    predefined_metric_type = optional(string) # https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html
+    resource_label         = optional(string) # only valid when predefined_metric_type is ALBRequestCountPerTarget
+
+    custom_metrics = optional(list(object({
+      label       = string
+      id          = string
+      expression  = optional(string)
+      return_data = optional(bool)
+      metric_stat = optional(object({
+        stat = string
+        metric = object({
+          metric_name = string
+          namespace   = string
+          dimensions  = list(object({ name = string, value = string }))
+        })
+      }))
+    })))
+  }))
+  default = []
 }
 
 variable "autoscaling_schedule" {
