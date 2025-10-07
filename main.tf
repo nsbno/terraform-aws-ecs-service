@@ -931,22 +931,14 @@ resource "terraform_data" "no_launch_type_and_spot" {
   }
 }
 
-
-# When autoscaling is enabled, we have to ignore changes to the desired count.
-# This is because the autoscaling group will manage the desired count.
-# If terraform apply is run, then the desired count will be reset.
-#
-# Having two resources allows us to have some users with autoscaling and some
-# using desired count.
-
 resource "aws_ecs_service" "service" {
-  count      = var.autoscaling == null ? 1 : 0
   depends_on = [terraform_data.no_launch_type_and_spot]
 
   name            = var.service_name
   cluster         = var.cluster_id
   task_definition = local.task_definition.arn
-  desired_count   = var.desired_count
+  # Desired count will be ignored, configure autoscaling instead if needed.
+  desired_count = var.desired_count
   # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
   launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
@@ -1045,106 +1037,6 @@ resource "aws_ecs_service" "service" {
   }
 }
 
-resource "aws_ecs_service" "service_with_autoscaling" {
-  count      = var.autoscaling != null ? 1 : 0
-  depends_on = [terraform_data.no_launch_type_and_spot]
-
-  name            = var.service_name
-  cluster         = var.cluster_id
-  task_definition = local.task_definition.arn
-  desired_count   = var.desired_count
-  # we use capacity_provider_strategy to set the launch type for Fargate, so we set it to null here.
-  launch_type                        = var.use_spot || var.launch_type == "FARGATE" ? null : var.launch_type
-  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
-  deployment_maximum_percent         = var.deployment_maximum_percent
-  health_check_grace_period_seconds  = var.launch_type == "EXTERNAL" ? null : var.health_check_grace_period_seconds
-  wait_for_steady_state              = var.wait_for_steady_state
-  propagate_tags                     = var.propagate_tags
-  enable_execute_command             = var.enable_execute_command
-  force_new_deployment               = var.force_new_deployment
-
-  # ECS Anywhere doesn't support VPC networking or load balancers.
-  # Because of this, we need to make these resources dynamic!
-
-  deployment_controller {
-    type = var.deployment_controller_type
-  }
-
-  deployment_circuit_breaker {
-    enable   = var.deployment_circuit_breaker.enable
-    rollback = var.deployment_circuit_breaker.rollback
-  }
-
-  deployment_configuration {
-    strategy             = var.deployment_configuration_strategy
-    bake_time_in_minutes = var.rollback_window_in_minutes
-  }
-
-  dynamic "network_configuration" {
-    for_each = var.launch_type == "EXTERNAL" ? [] : [0]
-
-    content {
-      subnets          = var.private_subnet_ids
-      security_groups  = [aws_security_group.ecs_service[0].id]
-      assign_public_ip = var.assign_public_ip
-    }
-  }
-
-  dynamic "load_balancer" {
-    for_each = var.launch_type == "EXTERNAL" ? [] : var.lb_listeners
-
-    content {
-      container_name   = var.application_container.name
-      container_port   = var.application_container.port
-      target_group_arn = aws_lb_target_group.service[load_balancer.key].arn
-
-      advanced_configuration {
-        alternate_target_group_arn = aws_lb_target_group.secondary[load_balancer.key].arn
-        production_listener_rule   = aws_lb_listener_rule.service[load_balancer.key].arn
-        role_arn                   = aws_iam_role.infrastructure_for_load_balancers.arn
-        test_listener_rule         = aws_lb_listener_rule.replacement[load_balancer.key].arn
-      }
-    }
-  }
-
-  # We set the service as a spot service through setting up the capacity_provider_strategy.
-  # Requires a cluster with 'FARGATE_SPOT' capacity provider enabled.
-  dynamic "capacity_provider_strategy" {
-    # Only use for Fargate launch type
-    for_each = var.launch_type != "FARGATE" ? [] : (var.use_spot ? [local.capacity_provider_strategy_spot] : [local.capacity_provider_strategy_on_demand])
-
-    content {
-      capacity_provider = capacity_provider_strategy.value.capacity_provider
-      weight            = capacity_provider_strategy.value.weight
-    }
-  }
-
-  # Placement constraints for EC2 and EXTERNAL launch types. Can be used to ensure that services are placed on specific instances.
-  dynamic "placement_constraints" {
-    for_each = var.placement_constraints
-
-    content {
-      type       = placement_constraints.value.type
-      expression = placement_constraints.value.expression
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [task_definition, desired_count]
-
-    precondition {
-      condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
-      error_message = "Placement constraints are not valid for FARGATE launch type"
-    }
-  }
-
-  timeouts {
-    create = var.ecs_service_timeouts.create
-    update = var.ecs_service_timeouts.update
-    delete = var.ecs_service_timeouts.delete
-  }
-}
-
 /*
  * = Autoscaling
  */
@@ -1152,31 +1044,25 @@ locals {
   # The Cluster ID is the cluster's ARN.
   # The last part after a '/'is the name of the cluster.
   cluster_name = split("/", var.cluster_id)[1]
-
-  autoscaling = var.autoscaling != null ? var.autoscaling : {
-    min_capacity = var.desired_count
-    max_capacity = var.desired_count
-    metric_type  = "ECSServiceAverageCPUUtilization"
-    target_value = "75"
-  }
 }
 
 resource "aws_appautoscaling_target" "ecs_service" {
-  count = var.autoscaling != null ? 1 : 0
+  count = length(var.autoscaling_policies) > 0 ? 1 : 0
 
-  resource_id = "service/${local.cluster_name}/${aws_ecs_service.service_with_autoscaling[0].name}"
+  resource_id = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
 
   service_namespace  = "ecs"
   scalable_dimension = "ecs:service:DesiredCount"
 
-  min_capacity = local.autoscaling.min_capacity
-  max_capacity = local.autoscaling.max_capacity
+  # We control desired count through the autoscaling target as desired_count is ignored in the ECS service.
+  min_capacity = min(var.autoscaling_capacity.min, var.desired_count)
+  max_capacity = max(var.autoscaling_capacity.max, var.desired_count)
 }
 
 resource "aws_appautoscaling_policy" "ecs_service" {
-  count = var.autoscaling != null ? 1 : 0
+  for_each = { for k, v in var.autoscaling_policies : k => v }
 
-  name = "${var.service_name}-automatic-scaling"
+  name = "${var.service_name}-scaling-${each.key}"
   # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
@@ -1185,27 +1071,33 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   target_tracking_scaling_policy_configuration {
     dynamic "predefined_metric_specification" {
-      for_each = length(var.custom_metrics) > 0 ? [] : [1]
+      for_each = length(coalesce(each.value.custom_metrics, [])) > 0 ? [] : [1]
       content {
-        predefined_metric_type = local.autoscaling.metric_type
-        resource_label         = var.autoscaling_resource_label
+        predefined_metric_type = each.value.predefined_metric_type
+        resource_label         = each.value.resource_label
       }
     }
 
     dynamic "customized_metric_specification" {
-      for_each = length(var.custom_metrics) > 0 ? [1] : []
+      for_each = length(coalesce(each.value.custom_metrics, [])) > 0 ? [1] : []
       content {
         dynamic "metrics" {
-          for_each = var.custom_metrics
+          for_each = each.value.custom_metrics
+
           content {
-            label = metrics.value.label
-            id    = metrics.value.id
+            label       = metrics.value.label
+            id          = metrics.value.id
+            expression  = metrics.value.expression
+            return_data = metrics.value.return_data
+
             dynamic "metric_stat" {
               for_each = metrics.value.metric_stat[*]
+
               content {
                 metric {
                   metric_name = metric_stat.value.metric.metric_name
                   namespace   = metric_stat.value.metric.namespace
+
                   dynamic "dimensions" {
                     for_each = metric_stat.value.metric.dimensions
                     content {
@@ -1217,22 +1109,20 @@ resource "aws_appautoscaling_policy" "ecs_service" {
                 stat = metric_stat.value.stat
               }
             }
-            expression  = metrics.value.expression
-            return_data = metrics.value.return_data
           }
         }
       }
     }
 
-    target_value       = coalesce(var.autoscaling.target_value, local.autoscaling.target_value)
-    scale_in_cooldown  = var.autoscaling.scale_in_cooldown
-    scale_out_cooldown = var.autoscaling.scale_out_cooldown
+    target_value       = each.value.target_value
+    scale_in_cooldown  = try(each.value.scale_in_cooldown, null)
+    scale_out_cooldown = try(each.value.scale_out_cooldown, null)
   }
 
   lifecycle {
     precondition {
-      condition     = !(var.autoscaling_resource_label != "" && length(var.custom_metrics) > 0)
-      error_message = "Cannot define autoscaling resource label and custom metrics at the same time"
+      condition     = !(each.value.predefined_metric_type != null && length(coalesce(each.value.custom_metrics, [])) > 0)
+      error_message = "Cannot define autoscaling predefined metric type and custom metrics at the same time"
     }
   }
 }
@@ -1246,17 +1136,13 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 resource "aws_appautoscaling_scheduled_action" "ecs_service" {
   for_each = {
     for v in var.autoscaling_schedule.schedules : v.schedule => v
-    if var.autoscaling != null
+    if length(var.autoscaling_policies) > 0
   }
 
-  name        = "${var.service_name}-scheduled-scaling"
-  resource_id = aws_appautoscaling_target.ecs_service[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service[
-    0
-  ].scalable_dimension
-  service_namespace = aws_appautoscaling_target.ecs_service[
-    0
-  ].service_namespace
+  name               = "${var.service_name}-scheduled-scaling"
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
   timezone = var.autoscaling_schedule.timezone
   schedule = each.value.schedule

@@ -84,12 +84,22 @@ module "service" {
     }]
   }]
 
-  autoscaling = {
-    min_capacity = 1
-    max_capacity = 3
-    metric_type  = "ECSServiceAverageCPUUtilization"
-    target_value = "75"
+  autoscaling_capacity = {
+    min = 1
+    max = 2
   }
+
+  autoscaling_policies = [
+    {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+      target_value           = "75"
+    }
+    # Can be combined with multiple metric types or custom metrics
+    # {
+    #   predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    #   target_value           = "75"
+    # }
+  ]
 
   autoscaling_schedule = {
     timezone = "Europe/Oslo"
