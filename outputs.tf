@@ -51,9 +51,23 @@ output "target_group_arns" {
 }
 
 output "target_group_arn_suffixes" {
-  description = "The ARNs of all created target groups"
+  description = "The ARN suffixes of all created target groups"
   value = tomap({
     for key, target_group in aws_lb_target_group.service : key => target_group.arn_suffix
+  })
+}
+
+output "secondary_target_group_arns" {
+  description = "The ARNs of all created secondary target groups"
+  value = tomap({
+    for key, target_group in aws_lb_target_group.secondary : key => target_group.arn
+  })
+}
+
+output "secondary_target_group_arn_suffixes" {
+  description = "The ARN suffixes of all created secondary target groups"
+  value = tomap({
+    for key, target_group in aws_lb_target_group.secondary : key => target_group.arn_suffix
   })
 }
 
