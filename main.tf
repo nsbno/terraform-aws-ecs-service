@@ -1055,8 +1055,8 @@ resource "aws_appautoscaling_target" "ecs_service" {
   scalable_dimension = "ecs:service:DesiredCount"
 
   # We control desired count through the autoscaling target as desired_count is ignored in the ECS service.
-  min_capacity = min(var.autoscaling_min_capacity, var.desired_count)
-  max_capacity = max(var.autoscaling_max_capacity, var.desired_count)
+  min_capacity = min(var.autoscaling_capacity.min, var.desired_count)
+  max_capacity = max(var.autoscaling_capacity.max, var.desired_count)
 }
 
 resource "aws_appautoscaling_policy" "ecs_service" {

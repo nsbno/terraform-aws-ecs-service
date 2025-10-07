@@ -183,16 +183,13 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "autoscaling_min_capacity" {
-  description = "The minimum number of instances to scale to."
-  type        = number
-  default     = 1
-}
-
-variable "autoscaling_max_capacity" {
-  description = "The maximum number of instances to scale to."
-  type        = number
-  default     = 1
+variable "autoscaling_capacity" {
+  description = "The min and max number of instances to scale to."
+  type = object({
+    min = number
+    max = number
+  })
+  default = { min = 1, max = 1 }
 }
 
 variable "autoscaling_policies" {
