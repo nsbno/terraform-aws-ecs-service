@@ -84,6 +84,11 @@ module "service" {
     }]
   }]
 
+  autoscaling_capacity = {
+    min = 1
+    max = 2
+  }
+
   autoscaling_policies = [
     {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"

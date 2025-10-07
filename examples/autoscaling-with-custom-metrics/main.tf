@@ -90,8 +90,10 @@ module "service" {
     }
   ]
 
-  autoscaling_min_capacity = 1
-  autoscaling_max_capacity = 3
+  autoscaling_capacity = {
+    min = 1
+    max = 3
+  }
 
   autoscaling_policies = [
     {
