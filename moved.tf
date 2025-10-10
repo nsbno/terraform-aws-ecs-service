@@ -2,5 +2,5 @@
 # Own module for autoscaling is no longer needed as we ignore changes to desired_count as
 moved {
   from = aws_ecs_service.service_with_autoscaling[0]
-  to   = aws_ecs_service.service
+  to   = aws_ecs_service.service[0]
 }

@@ -932,6 +932,9 @@ resource "terraform_data" "no_launch_type_and_spot" {
 }
 
 resource "aws_ecs_service" "service" {
+  # Always create a count to ease transition where we had multiple services before
+  count = var.service_name != "" ? 1 : 0
+
   depends_on = [terraform_data.no_launch_type_and_spot]
 
   name            = var.service_name
@@ -1049,7 +1052,7 @@ locals {
 resource "aws_appautoscaling_target" "ecs_service" {
   count = length(var.autoscaling_policies) > 0 ? 1 : 0
 
-  resource_id = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
+  resource_id = "service/${local.cluster_name}/${aws_ecs_service.service[0].name}"
 
   service_namespace  = "ecs"
   scalable_dimension = "ecs:service:DesiredCount"
