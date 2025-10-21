@@ -1032,11 +1032,7 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    ignore_changes = [
-      task_definition,
-      desired_count,
-      capacity_provider_strategy # Do not want to force recreate. GHA pipeline handles upgrade to capacity provider
-    ]
+    ignore_changes = [task_definition, desired_count]
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
       error_message = "Placement constraints are not valid for FARGATE launch type"
