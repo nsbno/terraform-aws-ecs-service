@@ -931,6 +931,15 @@ resource "terraform_data" "no_launch_type_and_spot" {
   }
 }
 
+resource "terraform_data" "datadog_and_instrumentation_runtime" {
+  lifecycle {
+    precondition {
+      condition     = !(var.enable_datadog != (var.datadog_instrumentation_runtime != null))
+      error_message = "enable_datadog and datadog_instrumentation_runtime must both be set together"
+    }
+  }
+}
+
 resource "aws_ecs_service" "service" {
   # Always create a count to ease transition where we had multiple services before
   count = var.service_name != "" ? 1 : 0

@@ -361,9 +361,14 @@ variable "enable_datadog" {
 }
 
 variable "datadog_instrumentation_runtime" {
-  description = "Runtime for autoinstrumentation. Valid values: `node` or `jvm`"
+  description = "Runtime for Datadog auto instrumentation"
   type        = string
   default     = null
+
+  validation {
+    condition     = var.datadog_instrumentation_runtime == null || contains(["node", "jvm"], var.datadog_instrumentation_runtime)
+    error_message = "The datadog_instrumentation_runtime must be either `node` or `jvm`."
+  }
 }
 
 variable "datadog_options" {
