@@ -870,7 +870,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           provider   = "ecs"
           dd_service = var.service_name,
           # Version tag should be appended dynamically in GitHub Actions
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}"]))
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"]))
         }
         secretOptions = [
           {
