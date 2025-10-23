@@ -300,7 +300,8 @@ variable "deployment_maximum_percent" {
 variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
-  default     = false
+  # Default true to avoid race conditions in GHA deployment workflows
+  default     = true
 }
 
 variable "xray_daemon" {
