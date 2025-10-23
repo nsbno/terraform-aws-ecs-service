@@ -53,3 +53,26 @@ data "aws_iam_policy_document" "env_ssm_parameters_permissions" {
     ]
   }
 }
+
+resource "aws_iam_role_policy" "secrets_from_ssm_policy" {
+  count = length(var.secrets_from_ssm) > 0 ? 1 : 0
+
+  name   = "${var.service_name}-task-execution-secrets-from-ssm"
+  role   = var.task_execution_role_id
+  policy = data.aws_iam_policy_document.secrets_arn_from_ssm_permissions.json
+}
+
+data "aws_iam_policy_document" "secrets_arn_from_ssm_permissions" {
+  statement {
+    effect = "Allow"
+
+    resources = [for arn in values(var.secrets_from_ssm) : arn]
+
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+      "ssm:GetParametersByPath",
+      "ssm:DescribeParameters",
+    ]
+  }
+}

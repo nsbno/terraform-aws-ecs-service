@@ -13,6 +13,11 @@ variable "secrets_to_override" {
   type        = map(string)
 }
 
+variable "secrets_from_ssm" {
+  description = "Will give read access to the ECS task execution role."
+  type        = map(string)
+}
+
 variable "service_name" {
   description = "The name of the service for which SSM parameters are being created"
   type        = string

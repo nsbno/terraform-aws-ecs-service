@@ -693,6 +693,7 @@ module "env_vars_to_ssm_parameters" {
   environment_variables = var.application_container.environment
   secrets               = var.application_container.secrets
   secrets_to_override   = var.application_container.secrets_to_override
+  secrets_from_ssm  = var.application_container.secrets_from_ssm
 }
 
 locals {
@@ -701,7 +702,7 @@ locals {
     image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
     environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
-    secrets       = merge(module.env_vars_to_ssm_parameters.ssm_parameter_arns, var.application_container.secrets_from_ssm)
+    secrets       = module.env_vars_to_ssm_parameters.ssm_parameter_arns
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []
