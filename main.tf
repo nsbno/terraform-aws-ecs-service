@@ -869,7 +869,8 @@ resource "aws_ecs_task_definition" "task_datadog" {
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.service_name,
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"]))
+          # Version tag should be appended dynamically in GitHub Actions
+          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}"]))
         }
         secretOptions = [
           {
@@ -887,7 +888,6 @@ resource "aws_ecs_task_definition" "task_datadog" {
         "com.datadoghq.tags.service" = var.service_name
         "com.datadoghq.tags.env"     = local.environment
         "com.datadoghq.tags.team"    = var.team_name_override != null ? var.team_name_override : local.team_name
-        "com.datadoghq.tags.version" = nonsensitive(data.aws_ssm_parameter.deployment_version.value)
       }
 
       # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
