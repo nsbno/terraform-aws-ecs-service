@@ -366,7 +366,7 @@ variable "datadog_instrumentation_runtime" {
   default     = null
 
   validation {
-    condition     = var.datadog_instrumentation_runtime == null || contains(["node", "jvm"], var.datadog_instrumentation_runtime)
+    condition     = var.datadog_instrumentation_runtime == null || try(contains(["node", "jvm"], var.datadog_instrumentation_runtime), false)
     error_message = "The datadog_instrumentation_runtime must be either `node` or `jvm`."
   }
 }
