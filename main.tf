@@ -893,7 +893,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           provider   = "ecs"
           dd_service = var.service_name,
           # Version tag should be appended dynamically in GitHub Actions
-          dd_tags    = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"]))
+          dd_tags = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"]))
         }
         secretOptions = [
           {
@@ -1100,59 +1100,99 @@ resource "aws_appautoscaling_policy" "ecs_service" {
 
   name = "${var.service_name}-scaling-${each.key}"
   # Step Scaling is also available, but it's explicitly not recommended by the AWS docs.
-  policy_type        = "TargetTrackingScaling"
+  policy_type        = each.value.policy_type
   resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
-  target_tracking_scaling_policy_configuration {
-    dynamic "predefined_metric_specification" {
-      for_each = length(coalesce(each.value.custom_metrics, [])) > 0 ? [] : [1]
-      content {
-        predefined_metric_type = each.value.predefined_metric_type
-        resource_label         = each.value.resource_label
+  dynamic "predictive_scaling_policy_configuration" {
+    for_each = each.value.policy_type == "PredictiveScaling" ? [1] : []
+
+    content {
+      mode = each.value.predictive_scaling_mode
+      metric_specification {
+        target_value = each.value.target_value
+
+        dynamic "predefined_metric_pair_specification" {
+          for_each = each.value.predefined_metric_pair_type != null ? [1] : []
+          content {
+            predefined_metric_type = each.value.predefined_metric_pair_type
+            resource_label         = each.value.resource_label
+          }
+        }
+
+        # Option 2: Use separate predefined load and scaling metrics
+        dynamic "predefined_load_metric_specification" {
+          for_each = each.value.predefined_load_metric_type != null ? [1] : []
+          content {
+            predefined_metric_type = each.value.predefined_load_metric_type
+            resource_label         = each.value.resource_label
+          }
+        }
+
+        dynamic "predefined_scaling_metric_specification" {
+          for_each = each.value.predefined_scaling_metric_type != null ? [1] : []
+          content {
+            predefined_metric_type = each.value.predefined_scaling_metric_type
+            resource_label         = each.value.resource_label
+          }
+        }
       }
     }
+  }
 
-    dynamic "customized_metric_specification" {
-      for_each = length(coalesce(each.value.custom_metrics, [])) > 0 ? [1] : []
-      content {
-        dynamic "metrics" {
-          for_each = each.value.custom_metrics
+  dynamic "target_tracking_scaling_policy_configuration" {
+    for_each = each.value.policy_type == "TargetTrackingScaling" ? [1] : []
 
-          content {
-            label       = metrics.value.label
-            id          = metrics.value.id
-            expression  = metrics.value.expression
-            return_data = metrics.value.return_data
+    content {
+      dynamic "predefined_metric_specification" {
+        for_each = each.value.predefined_metric_type != null ? [1] : []
+        content {
+          predefined_metric_type = each.value.predefined_metric_type
+          resource_label         = each.value.resource_label
+        }
+      }
 
-            dynamic "metric_stat" {
-              for_each = metrics.value.metric_stat[*]
+      dynamic "customized_metric_specification" {
+        for_each = length(coalesce(each.value.custom_metrics, [])) > 0 ? [1] : []
+        content {
+          dynamic "metrics" {
+            for_each = each.value.custom_metrics
 
-              content {
-                metric {
-                  metric_name = metric_stat.value.metric.metric_name
-                  namespace   = metric_stat.value.metric.namespace
+            content {
+              label       = metrics.value.label
+              id          = metrics.value.id
+              expression  = metrics.value.expression
+              return_data = metrics.value.return_data
 
-                  dynamic "dimensions" {
-                    for_each = metric_stat.value.metric.dimensions
-                    content {
-                      name  = dimensions.value.name
-                      value = dimensions.value.value
+              dynamic "metric_stat" {
+                for_each = metrics.value.metric_stat[*]
+
+                content {
+                  metric {
+                    metric_name = metric_stat.value.metric.metric_name
+                    namespace   = metric_stat.value.metric.namespace
+
+                    dynamic "dimensions" {
+                      for_each = metric_stat.value.metric.dimensions
+                      content {
+                        name  = dimensions.value.name
+                        value = dimensions.value.value
+                      }
                     }
                   }
+                  stat = metric_stat.value.stat
                 }
-                stat = metric_stat.value.stat
               }
             }
           }
         }
       }
-    }
 
-    target_value       = each.value.target_value
-    scale_in_cooldown  = try(each.value.scale_in_cooldown, null)
-    scale_out_cooldown = try(each.value.scale_out_cooldown, null)
+      target_value       = each.value.target_value
+      scale_in_cooldown  = try(each.value.scale_in_cooldown, null)
+      scale_out_cooldown = try(each.value.scale_out_cooldown, null)
+    }
   }
 
   lifecycle {

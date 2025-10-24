@@ -1,0 +1,16 @@
+= Predictive Autoscaling
+
+This example shows a simple service with predictgive autoscaling.
+
+When using predictive autoscaling, AWS will analyze historical data to predict future traffic patterns and adjust the number of running tasks accordingly.
+
+Using `predictive_scaling_mode = "ForecastOnly"` will allow AWS to make scaling recommendations based on historical data without actually changing the number of running tasks.
+
+Afterwards, you can change the mode to `"ForecastAndScale"` to enable automatic scaling based on the predictions.
+
+Using `predefined_metric_pair_type = "ALBRequestCount"`
+requires `resource_label` in the format:
+`app/<load-balancer-name>/<load-balancer-id>/targetgroup/<target-group-name>/<target-group-id>`.
+
+This can be found by using the last part of the load balancer and target group ARNs.
+

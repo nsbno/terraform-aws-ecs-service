@@ -196,12 +196,15 @@ variable "autoscaling_policies" {
   description = "Enable autoscaling for the service"
   type = list(object({
     target_value       = number
+    policy_type        = optional(string, "TargetTrackingScaling") # Can be TargetTrackingScaling, StepScaling, or PredictiveScaling
     scale_in_cooldown  = optional(number)
     scale_out_cooldown = optional(number)
 
+    # Target tracking options
     predefined_metric_type = optional(string) # https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PredefinedMetricSpecification.html
-    resource_label         = optional(string) # only valid when predefined_metric_type is ALBRequestCountPerTarget
+    resource_label         = optional(string) # format is app/<load-balancer-name>/<load-balancer-id>/targetgroup/<target-group-name>/<target-group-id>
 
+    # For custom metric specifications (target tracking)
     custom_metrics = optional(list(object({
       label       = string
       id          = string
@@ -216,6 +219,16 @@ variable "autoscaling_policies" {
         })
       }))
     })))
+
+    # Predictive Scaling options
+    predictive_scaling_mode = optional(string, "ForecastOnly") # ForecastOnly or ForecastAndScale
+
+    # Option 1: Use predefined metric pair (automatically handles load + scaling metrics)
+    predefined_metric_pair_type = optional(string) # ECSServiceCPUUtilization, ECSServiceMemoryUtilization, ALBRequestCount
+
+    # Option 2: Use separate predefined load and scaling metrics (for custom combinations)
+    predefined_load_metric_type    = optional(string) # ECSServiceTotalCPUUtilization, ECSServiceTotalMemoryUtilization, TotalALBRequestCount
+    predefined_scaling_metric_type = optional(string) # ECSServiceAverageCPUUtilization, ECSServiceAverageMemoryUtilization, ALBRequestCountPerTarget
   }))
   default = []
 }
@@ -301,7 +314,7 @@ variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
   # Default true to avoid race conditions in GHA deployment workflows
-  default     = true
+  default = true
 }
 
 variable "xray_daemon" {

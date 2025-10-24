@@ -27,6 +27,9 @@ A simple service using autoscaling to handle increased load.
 link:examples/autoscaling-with-custom-metrics/[Autoscaling with custom metrics]::
 A service using autoscaling to handle increased load based on custom metrics.
 
+link:examples/autoscaling-predictive/[Predictive Autoscaling]::
+A simple service using predictive autoscaling.
+
 link:examples/datadog/[With Datadog]::
 A service with Datadog and autoinstrumentation enabled.
 
