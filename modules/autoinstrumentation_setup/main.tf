@@ -41,7 +41,8 @@ locals {
   auto_instrumentation_for_app_container_injection_extra_options = {
     "jvm" : {
       environment = {
-        JAVA_TOOL_OPTIONS = "-javaagent:/datadog-instrumentation-init/package/dd-java-agent.jar"
+        # Append to existing JAVA_TOOL_OPTIONS if it exists, otherwise just set it
+        JAVA_TOOL_OPTIONS = trim("${var.existing_java_tool_options} -javaagent:/datadog-instrumentation-init/package/dd-java-agent.jar", " ")
 
         DD_LOGS_INJECTION    = true
         DD_PROFILING_ENABLED = true
@@ -77,7 +78,8 @@ locals {
     }
     "node" : {
       environment = {
-        NODE_OPTIONS = "--require /datadog-instrumentation-init/package/node_modules/dd-trace/init"
+        # Append to existing NODE_OPTIONS if it exists, otherwise just set it
+        NODE_OPTIONS = trim("${var.existing_node_options} --require /datadog-instrumentation-init/package/node_modules/dd-trace/init", " ")
 
         DD_LOGS_INJECTION    = true
         DD_PROFILING_ENABLED = true
@@ -111,16 +113,4 @@ locals {
     environment   = local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["environment"]
     extra_options = local.auto_instrumentation_for_app_container_injection_extra_options[var.datadog_instrumentation_runtime]["extra_options"]
   }
-}
-
-output "init_container_definition" {
-  value = local.init_container[var.datadog_instrumentation_runtime]
-}
-
-output "new_environment" {
-  value = local.new_definition.environment
-}
-
-output "new_extra_options" {
-  value = local.new_definition.extra_options
 }

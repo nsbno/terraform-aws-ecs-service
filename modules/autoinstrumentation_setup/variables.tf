@@ -15,3 +15,15 @@ variable "dd_env" {
 variable "dd_team_tag" {
   type = string
 }
+
+variable "existing_java_tool_options" {
+  description = "Existing JAVA_TOOL_OPTIONS value to append Datadog javaagent to"
+  type        = string
+  default     = ""
+}
+
+variable "existing_node_options" {
+  description = "Existing NODE_OPTIONS value to append Datadog require to"
+  type        = string
+  default     = ""
+}

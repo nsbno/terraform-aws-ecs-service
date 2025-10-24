@@ -672,6 +672,18 @@ locals {
   ] : null
 }
 
+locals {
+  existing_java_tool_options = lookup(var.application_container.environment, "JAVA_TOOL_OPTIONS", "")
+  existing_node_options      = lookup(var.application_container.environment, "NODE_OPTIONS", "")
+
+  # Filter out runtime-specific options from environment variables to avoid duplication
+  # These will be handled by autoinstrumentation module with appended values
+  filtered_environment_variables = var.datadog_instrumentation_runtime == null ? var.application_container.environment : {
+    for k, v in var.application_container.environment : k => v
+    if !contains(["JAVA_TOOL_OPTIONS", "NODE_OPTIONS"], k)
+  }
+}
+
 module "autoinstrumentation_setup" {
   source = "./modules/autoinstrumentation_setup"
 
@@ -682,6 +694,9 @@ module "autoinstrumentation_setup" {
   dd_service  = var.service_name
   dd_env      = local.environment
   dd_team_tag = local.team_name_tag
+
+  existing_java_tool_options = local.existing_java_tool_options
+  existing_node_options      = local.existing_node_options
 }
 
 module "env_vars_to_ssm_parameters" {
@@ -690,10 +705,11 @@ module "env_vars_to_ssm_parameters" {
   service_name           = var.service_name
   task_execution_role_id = aws_iam_role.execution.id
 
-  environment_variables = var.application_container.environment
+  # Use filtered environment variables (runtime options excluded when using autoinstrumentation)
+  environment_variables = local.filtered_environment_variables
   secrets               = var.application_container.secrets
   secrets_to_override   = var.application_container.secrets_to_override
-  secrets_from_ssm  = var.application_container.secrets_from_ssm
+  secrets_from_ssm      = var.application_container.secrets_from_ssm
 }
 
 locals {
