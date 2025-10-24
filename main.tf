@@ -650,6 +650,13 @@ locals {
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
       }
+      health_check = {
+        command     = ["CMD-SHELL", "agent health"]
+        interval    = 10
+        timeout     = 5
+        retries     = 3
+        startPeriod = 15
+      }
     },
     {
       name      = "log-router",
