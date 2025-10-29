@@ -419,13 +419,12 @@ resource "aws_lb_listener_rule" "service" {
   lifecycle {
     ignore_changes = [
       # NOTE: This is bound to cause some issues at some point.
-      #       This is required because CodeDeploy will take charge of the weighting
+      #       This is required because the ECS Deployment will take charge of the weighting
       #       after the initial deploy.
       #       We can not reference the target groups directly.
       #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
-      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
-      # Can cause issues if migrating from an older version, using this module
-      # "The ELB could not be updated due to the following error: Primary taskset target group must be behind listener"
+      # Relevant issue: https://github.com/hashicorp/terraform-provider-aws/issues/43905
+      # Can cause issues if we do changes which triggers recreate to aws_lb_target_group
       action[0]
     ]
   }
@@ -552,11 +551,12 @@ resource "aws_lb_listener_rule" "replacement" {
   lifecycle {
     ignore_changes = [
       # NOTE: This is bound to cause some issues at some point.
-      #       This is required because CodeDeploy will take charge of the weighting
+      #       This is required because the ECS Deployment will take charge of the weighting
       #       after the initial deploy.
       #       We can not reference the target groups directly.
       #       So here we are just blanket ignoring the whole forward block and hoping it is OK.
-      # Relevant issue: https://github.com/hashicorp/terraform/issues/26359#issuecomment-2578078480
+      # Relevant issue: https://github.com/hashicorp/terraform-provider-aws/issues/43905
+      # Can cause issues if we do changes which triggers recreate to aws_lb_target_group
       action[0]
     ]
   }
