@@ -45,7 +45,7 @@ locals {
         JAVA_TOOL_OPTIONS = trim("${var.existing_java_tool_options} -javaagent:/datadog-instrumentation-init/package/dd-java-agent.jar", " ")
 
         DD_LOGS_INJECTION    = true
-        DD_PROFILING_ENABLED = true
+        DD_PROFILING_ENABLED = var.dd_profiling_enabled
 
         # Remove "java-aws-sdk" and make it the same name as DD_SERVICE
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED    = true
@@ -82,7 +82,7 @@ locals {
         NODE_OPTIONS = trim("${var.existing_node_options} --require /datadog-instrumentation-init/package/node_modules/dd-trace/init", " ")
 
         DD_LOGS_INJECTION    = true
-        DD_PROFILING_ENABLED = true
+        DD_PROFILING_ENABLED = var.dd_profiling_enabled
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env

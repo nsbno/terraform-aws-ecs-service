@@ -390,10 +390,14 @@ variable "datadog_options" {
   type = object({
     trace_startup_logs            = optional(bool)
     trace_partial_flush_min_spans = optional(number)
+    profiling_enabled             = optional(bool)
+    apm_enabled                   = optional(bool)
   })
   default = {
     trace_startup_logs            = false # Datadog default is true.
     trace_partial_flush_min_spans = 2000  # Datadog default is 1000.
+    profiling_enabled             = false
+    apm_enabled                   = true
     # We set 2000 so the smallest vCPU instances can handle it.
   }
 }

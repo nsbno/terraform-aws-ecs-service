@@ -637,7 +637,7 @@ locals {
         DD_ENV     = local.environment
         DD_TAGS    = local.team_name_tag
 
-        DD_APM_ENABLED            = "true"
+        DD_APM_ENABLED            = var.datadog_options.apm_enabled
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
         # Reject anything ending in /health
         DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
@@ -698,9 +698,10 @@ module "autoinstrumentation_setup" {
 
   datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
 
-  dd_service  = var.service_name
-  dd_env      = local.environment
-  dd_team_tag = local.team_name_tag
+  dd_service           = var.service_name
+  dd_env               = local.environment
+  dd_team_tag          = local.team_name_tag
+  dd_profiling_enabled = var.datadog_options.profiling_enabled
 
   existing_java_tool_options = local.existing_java_tool_options
   existing_node_options      = local.existing_node_options
