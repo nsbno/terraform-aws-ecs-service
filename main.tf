@@ -301,10 +301,10 @@ resource "aws_lb_target_group" "service" {
 
   vpc_id = var.vpc_id
 
-  target_type = "ip"
-  port        = var.application_container.port
-  protocol    = var.application_container.protocol
-
+  target_type          = "ip"
+  port                 = var.application_container.port
+  protocol             = var.application_container.protocol
+  slow_start           = var.slow_start
   deregistration_delay = var.lb_deregistration_delay
 
   dynamic "health_check" {
@@ -444,6 +444,7 @@ resource "aws_lb_target_group" "secondary" {
   target_type = "ip"
   port        = var.application_container.port
   protocol    = var.application_container.protocol
+  slow_start  = var.slow_start
 
   deregistration_delay = var.lb_deregistration_delay
 
