@@ -301,10 +301,10 @@ resource "aws_lb_target_group" "service" {
 
   vpc_id = var.vpc_id
 
-  target_type = "ip"
-  port        = var.application_container.port
-  protocol    = var.application_container.protocol
-
+  target_type          = "ip"
+  port                 = var.application_container.port
+  protocol             = var.application_container.protocol
+  slow_start           = var.slow_start
   deregistration_delay = var.lb_deregistration_delay
 
   dynamic "health_check" {
@@ -347,26 +347,16 @@ resource "aws_lb_target_group" "service" {
 }
 
 locals {
-  # Additional conditions create new listener rules not covered by AND or OR logic for existing rules
-  all_listener_conditions = flatten([
-    for idx, value in var.lb_listeners : concat(
-      [
-        {
-          key               = idx
-          listener_arn      = value.listener_arn
-          test_listener_arn = value.test_listener_arn
-          conditions        = value.conditions
-          target_group_key  = idx
-        }
-      ],
-      [for rule_idx, rule in try(value.additional_conditions, []) : {
-        key               = "${idx}-additional-${rule_idx}"
-        listener_arn      = value.listener_arn
-        test_listener_arn = value.test_listener_arn
-        conditions        = [rule]
-        target_group_key  = idx
-      }]
-  )])
+  # Additional conditions create additional condition blocks for the listener rule
+  all_listener_conditions = [
+    for idx, value in var.lb_listeners : {
+      key               = idx
+      listener_arn      = value.listener_arn
+      test_listener_arn = value.test_listener_arn
+      conditions        = concat(value.conditions, try(value.additional_conditions, []))
+      target_group_key  = idx
+    }
+  ]
 }
 
 resource "aws_lb_listener_rule" "service" {
@@ -390,28 +380,29 @@ resource "aws_lb_listener_rule" "service" {
   }
 
   dynamic "condition" {
-    for_each = each.value.conditions
-
+    for_each = [for c in each.value.conditions : c if c.path_pattern != null]
     content {
-      dynamic "path_pattern" {
-        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
-        content {
-          values = [path_pattern.value]
-        }
+      path_pattern {
+        values = [condition.value.path_pattern]
       }
+    }
+  }
 
-      dynamic "host_header" {
-        for_each = condition.value.host_header != null ? [condition.value.host_header] : []
-        content {
-          values = flatten([host_header.value]) # Accept both a string or a list
-        }
+  dynamic "condition" {
+    for_each = [for c in each.value.conditions : c if c.host_header != null]
+    content {
+      host_header {
+        values = flatten([condition.value.host_header])
       }
-      dynamic "http_header" {
-        for_each = condition.value.http_header != null ? [condition.value.http_header] : []
-        content {
-          http_header_name = http_header.value.name
-          values           = http_header.value.values
-        }
+    }
+  }
+
+  dynamic "condition" {
+    for_each = [for c in each.value.conditions : c if c.http_header != null]
+    content {
+      http_header {
+        http_header_name = condition.value.http_header.name
+        values           = condition.value.http_header.values
       }
     }
   }
@@ -444,6 +435,7 @@ resource "aws_lb_target_group" "secondary" {
   target_type = "ip"
   port        = var.application_container.port
   protocol    = var.application_container.protocol
+  slow_start  = var.slow_start
 
   deregistration_delay = var.lb_deregistration_delay
 
@@ -521,29 +513,29 @@ resource "aws_lb_listener_rule" "replacement" {
   }
 
   dynamic "condition" {
-    for_each = each.value.conditions
-
+    for_each = [for c in each.value.conditions : c if c.path_pattern != null]
     content {
-      dynamic "path_pattern" {
-        for_each = condition.value.path_pattern != null ? [condition.value.path_pattern] : []
-        content {
-          values = [path_pattern.value]
-        }
+      path_pattern {
+        values = [condition.value.path_pattern]
       }
+    }
+  }
 
-      dynamic "host_header" {
-        for_each = condition.value.host_header != null ? [condition.value.host_header] : []
-        content {
-          values = flatten([host_header.value]) # Accept both a string or a list
-        }
+  dynamic "condition" {
+    for_each = [for c in each.value.conditions : c if c.host_header != null]
+    content {
+      host_header {
+        values = flatten([condition.value.host_header])
       }
+    }
+  }
 
-      dynamic "http_header" {
-        for_each = condition.value.http_header != null ? [condition.value.http_header] : []
-        content {
-          http_header_name = http_header.value.name
-          values           = http_header.value.values
-        }
+  dynamic "condition" {
+    for_each = [for c in each.value.conditions : c if c.http_header != null]
+    content {
+      http_header {
+        http_header_name = condition.value.http_header.name
+        values           = condition.value.http_header.values
       }
     }
   }
