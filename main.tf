@@ -304,6 +304,7 @@ resource "aws_lb_target_group" "service" {
   target_type = "ip"
   port        = var.application_container.port
   protocol    = var.application_container.protocol
+  slow_start  = var.slow_start
 
   deregistration_delay = var.lb_deregistration_delay
 
@@ -444,6 +445,7 @@ resource "aws_lb_target_group" "secondary" {
   target_type = "ip"
   port        = var.application_container.port
   protocol    = var.application_container.protocol
+  slow_start  = var.slow_start
 
   deregistration_delay = var.lb_deregistration_delay
 

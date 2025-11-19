@@ -367,6 +367,12 @@ variable "lb_stickiness" {
   }
 }
 
+variable "slow_start" {
+  description = "Amount time for targets to warm up before the load balancer sends them a full share of requests. The range is 30-900 seconds or 0 to disable. The default value is 0 seconds"
+  type        = number
+  default     = 0
+}
+
 # DATADOG SETUP
 variable "enable_datadog" {
   description = "Enable Datadog for the service"
