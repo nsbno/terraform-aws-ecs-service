@@ -82,19 +82,6 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       local.datadog_api_key_kms
     ]
   }
-
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "ssm:GetParameter",
-      "ssm:GetParameters"
-    ]
-
-    resources = [
-      data.aws_ssm_parameter.deployment_version.arn
-    ]
-  }
 }
 
 /*
@@ -567,27 +554,6 @@ resource "aws_lb_listener_rule" "replacement" {
  *
  * This is what users are here for
  */
-resource "aws_ssm_parameter" "deployment_version" {
-  # This parameter is used to initially store the version of the Lambda function. Will be overwritten
-  name  = "/__platform__/versions/${var.service_name}"
-  type  = "String"
-  value = "latest"
-
-  overwrite = true
-
-  lifecycle {
-    ignore_changes = [
-      value
-    ]
-  }
-}
-
-data "aws_ssm_parameter" "deployment_version" {
-  name = "/__platform__/versions/${var.service_name}"
-
-  depends_on = [aws_ssm_parameter.deployment_version]
-}
-
 data "aws_ssm_parameter" "team_name" {
   count = var.enable_datadog && var.team_name_override == null ? 1 : 0
 
@@ -723,7 +689,7 @@ module "env_vars_to_ssm_parameters" {
 locals {
   # Override application container keys
   application_container_with_overrides = merge(var.application_container, {
-    image = "${var.application_container.repository_url}:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"
+    image = "${local.ecr_repository_url}:${var.application_container.image.git_sha}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
     environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
     secrets       = module.env_vars_to_ssm_parameters.ssm_parameter_arns
@@ -894,7 +860,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           provider   = "ecs"
           dd_service = var.service_name,
           # Version tag should be appended dynamically in GitHub Actions
-          dd_tags = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${nonsensitive(data.aws_ssm_parameter.deployment_version.value)}"]))
+          dd_tags = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${var.application_container.image.git_sha}"]))
         }
         secretOptions = [
           {
@@ -1231,12 +1197,13 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
 }
 
 locals {
+  ecr_repository_url = "${var.application_container.image.store}/${var.application_container.image.path}"
   ssm_parameters = {
     compute_target     = "ecs"
     ecs_cluster_name   = local.cluster_name
     ecs_service_name   = var.service_name
     ecs_container_name = var.application_container.name
-    ecr_image_base     = var.application_container.repository_url
+    ecr_image_base     = local.ecr_repository_url
     ecs_container_port = var.application_container.port
   }
 }
