@@ -689,7 +689,7 @@ module "env_vars_to_ssm_parameters" {
 locals {
   # Override application container keys
   application_container_with_overrides = merge(var.application_container, {
-    image = "${local.ecr_repository_url}:${var.application_container.image.git_sha}"
+    image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
     environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
     secrets       = module.env_vars_to_ssm_parameters.ssm_parameter_arns
@@ -1197,13 +1197,11 @@ resource "aws_appautoscaling_scheduled_action" "ecs_service" {
 }
 
 locals {
-  ecr_repository_url = "${var.application_container.image.store}/${var.application_container.image.path}"
   ssm_parameters = {
-    compute_target     = "ecs"
     ecs_cluster_name   = local.cluster_name
     ecs_service_name   = var.service_name
     ecs_container_name = var.application_container.name
-    ecr_image_base     = local.ecr_repository_url
+    ecr_image_base     = var.application_container.image.ecr_repository_uri
     ecs_container_port = var.application_container.port
   }
 }
@@ -1211,7 +1209,7 @@ locals {
 resource "aws_ssm_parameter" "ssm_parameters" {
   for_each = local.ssm_parameters
 
-  name  = "/__deployment__/applications/${var.service_name}/${each.key}"
+  name  = "/__deployment__/${var.application_container.image.id}/${each.key}"
   type  = "String"
   value = each.value
 }

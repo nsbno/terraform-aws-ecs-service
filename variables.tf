@@ -19,11 +19,9 @@ variable "application_container" {
   type = object({
     name = string
     image = object({
+      id      = string # github-repository-name/working-directory (if any)
       git_sha = string # Image tag
-      store   = string # ECR Repository URI
-      path    = string # ECR Repository name
-      uri     = string # Full ECR image URI
-      version = string # Image digest
+      ecr_repository_uri   = string # ECR Repository URI
     })
     essential = optional(bool, true)
     command   = optional(string)
