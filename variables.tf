@@ -19,9 +19,9 @@ variable "application_container" {
   type = object({
     name = string
     image = object({
-      id      = string # github-repository-name/working-directory (if any)
-      git_sha = string # Image tag
-      ecr_repository_uri   = string # ECR Repository URI
+      id                 = string # github-repository-name/working-directory (if any)
+      git_sha            = string # Image tag
+      ecr_repository_uri = string # ECR Repository URI
     })
     essential = optional(bool, true)
     command   = optional(string)
@@ -47,10 +47,7 @@ variable "application_container" {
   })
 
   validation {
-    condition = var.application_container.image != null &&
-      var.application_container.image.store != "" &&
-      var.application_container.image.path != "" &&
-      var.application_container.image.git_sha != ""
+    condition     = var.application_container.image != null
     error_message = "application_container.image must be provided with a valid `vy_ecr_image` data source"
   }
 }
