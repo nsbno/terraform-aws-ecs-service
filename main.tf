@@ -751,7 +751,7 @@ resource "aws_ecs_task_definition" "task" {
   count = var.enable_datadog == true ? 0 : 1
 
   # Let Github Actions handle the versioning of the task definition
-  track_latest = true
+  # track_latest = true
   family       = var.service_name
 
   container_definitions = jsonencode([
@@ -817,7 +817,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
   count = var.enable_datadog == true ? 1 : 0
 
   # Let Github Actions handle the versioning of the task definition
-  track_latest = true
+  # track_latest = true
   family       = var.service_name
 
   container_definitions = jsonencode([
@@ -1032,7 +1032,7 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    ignore_changes = [task_definition, desired_count]
+    ignore_changes = [desired_count]
     precondition {
       condition     = !(length(var.placement_constraints) > 0 && var.launch_type == "FARGATE")
       error_message = "Placement constraints are not valid for FARGATE launch type"
