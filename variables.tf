@@ -38,6 +38,7 @@ variable "application_container" {
     network_protocol = optional(string, "tcp")
 
     health_check = optional(any)
+    stop_timeout   = optional(number, null)
 
     extra_options = optional(any)
   })
