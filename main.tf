@@ -759,6 +759,7 @@ locals {
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
+      stop_timeout       = try(container.stop_timeout, null)
       extra_options     = try(container.extra_options, {})
     } if container != null
   ]
@@ -828,6 +829,7 @@ resource "aws_ecs_task_definition" "task" {
         }
       }
       healthCheck       = container.health_check
+      stopTimeout       = container.stop_timeout
       cpu               = container.cpu
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
