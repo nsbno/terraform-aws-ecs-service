@@ -909,6 +909,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       }
 
       healthCheck       = container.health_check
+      stopTimeout       = container.stop_timeout
       cpu               = container.cpu
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
