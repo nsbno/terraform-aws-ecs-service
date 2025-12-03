@@ -323,7 +323,7 @@ variable "wait_for_steady_state" {
   description = "Whether to wait for the ECS service to reach a steady state."
   type        = bool
   # Default true to avoid race conditions in GHA deployment workflows
-  default = true
+  default = false
 }
 
 variable "xray_daemon" {
