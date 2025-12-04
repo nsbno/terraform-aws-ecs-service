@@ -43,9 +43,9 @@ data "aws_lb_listener" "https_test" {
 }
 
 
-data "aws_ecr_repository" "this" {
-  name        = "infrademo-demo-repo"
-  registry_id = "123456789012" # service account id
+data "vy_ecs_image" "this" {
+  github_repository_name = "infrademo-demo-app"
+  ecr_repository_name    = "infrademo-demo-repo"
 }
 
 /*
@@ -56,7 +56,7 @@ data "aws_ecr_repository" "this" {
 
 module "datadog_service" {
   # Find newest version here: https://github.com/nsbno/terraform-datadog-service/releases
-  source = "github.com/nsbno/terraform-datadog-service?ref=x.y.z"
+  source = "github.com/nsbno/terraform-datadog-service?ref=0.1.0"
 
   service_name = local.service_name
   display_name = "Infrademo Server"
@@ -80,10 +80,10 @@ module "service" {
   cluster_id         = data.aws_ecs_cluster.main.id
 
   application_container = {
-    name           = "main"
-    repository_url = data.aws_ecr_repository.this.repository_url
-    port           = 80
-    protocol       = "HTTP"
+    name     = "main"
+    image    = data.vy_ecs_image.this
+    port     = 80
+    protocol = "HTTP"
   }
 
   lb_listeners = [

@@ -161,4 +161,4 @@ Go check out link:docs/move-from-old-modules.adoc[the documentation about moving
 == FAQ
 
 * Missing required arguments?
-    - Newer versions of this module requires `hashicorp/aws` version >= `5.0.0`
+    - Newer versions of this module requires `hashicorp/aws` version >= `6.15.0`

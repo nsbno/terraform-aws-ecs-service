@@ -1,7 +1,3 @@
-provider "aws" {
-  region = "eu-west-1"
-}
-
 locals {
   name_prefix  = "infrademo"
   service_name = "my-webapp"
@@ -46,12 +42,10 @@ data "aws_lb_listener" "https_test" {
   port              = 8443
 }
 
-
-data "aws_ecr_repository" "this" {
-  name        = "infrademo-demo-repo"
-  registry_id = "123456789012" # service account id
+data "vy_ecs_image" "this" {
+  github_repository_name = "infrademo-demo-app"
+  ecr_repository_name    = "infrademo-demo-repo"
 }
-
 
 /*
  * = The actual setup
@@ -67,10 +61,10 @@ module "service" {
   cluster_id         = data.aws_ecs_cluster.main.id
 
   application_container = {
-    name           = "main"
-    repository_url = data.aws_ecr_repository.this.repository_url
-    port           = 80
-    protocol       = "HTTP"
+    name     = "main"
+    image    = data.vy_ecs_image.this
+    port     = 80
+    protocol = "HTTP"
   }
 
   lb_listeners = [{

@@ -17,10 +17,14 @@ variable "cluster_id" {
 variable "application_container" {
   description = "The application that is being run by the service"
   type = object({
-    name           = string
-    repository_url = string
-    essential      = optional(bool, true)
-    command        = optional(string)
+    name = string
+    image = object({
+      id                 = string # github-repository-name/working-directory (if any)
+      git_sha            = string # Image tag
+      ecr_repository_uri = string # ECR Repository URI
+    })
+    essential = optional(bool, true)
+    command   = optional(string)
 
     environment = optional(map(string), {})
     secrets     = optional(map(string), {})
@@ -42,6 +46,11 @@ variable "application_container" {
 
     extra_options = optional(any)
   })
+
+  validation {
+    condition     = var.application_container.image != null
+    error_message = "application_container.image must be provided with a valid `vy_ecr_image` data source"
+  }
 }
 
 variable "sidecar_containers" {
