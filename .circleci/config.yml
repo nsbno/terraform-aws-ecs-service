@@ -11,7 +11,9 @@ terraform-versions: &terraform-versions
 example-folders: &example-folders
   - examples/simple
   - examples/on-prem
+  - examples/datadog
   - examples/autoscaling
+  - examples/autoscaling-predictive
   - examples/autoscaling-with-custom-metrics
 
 workflows:
