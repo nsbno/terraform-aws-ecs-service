@@ -2,11 +2,15 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.0.0, < 6.0.0"
+      version = ">= 6.15.0, <7.0.0"
     }
     datadog = {
       source  = "DataDog/datadog"
-      version = ">= 3.57.0" # Check for the newest version here: https://registry.terraform.io/providers/DataDog/datadog/latest
+      version = ">= 3.81.0" # Check for the newest version here: https://registry.terraform.io/providers/DataDog/datadog/latest
+    }
+    vy = {
+      source  = "nsbno/vy"
+      version = ">= 1.0.0, < 2.0.0"
     }
   }
 }
@@ -14,7 +18,7 @@ terraform {
 # DATADOG SETUP
 module "datadog_provider_setup" {
   # Find newest version here: https://github.com/nsbno/terraform-datadog-provider-setup/releases
-  source = "github.com/nsbno/terraform-datadog-provider-setup?ref=x.y.z"
+  source = "github.com/nsbno/terraform-datadog-provider-setup?ref=0.0.2"
 }
 
 provider "datadog" {
