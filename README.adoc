@@ -10,6 +10,39 @@ It sets up your service, and links it with VPCs, load balancers, monitoring, and
 
 toc::[]
 
+== Usage
+
+Remember to check out the link:variables.tf[*variables*] and link:outputs.tf[*outputs*] to see all options.
+
+[source,hcl]
+----
+module "ecs_service" {
+  source = "github.com/nsbno/terraform-aws-ecs-service?ref=x.y.z"
+
+  service_name = local.service_name
+
+  vpc_id             = data.aws_vpc.main.id
+  private_subnet_ids = data.aws_subnets.private.ids
+  cluster_id         = data.aws_ecs_cluster.main.id
+
+  application_container = {
+    name     = "main"
+    image    = data.vy_ecs_image.this
+    port     = 80
+    protocol = "HTTP"
+  }
+
+  lb_listeners = [{
+    listener_arn      = data.aws_lb_listener.https.arn
+    test_listener_arn = data.aws_lb_listener.https_test.arn
+    security_group_id = one(data.aws_lb.main.security_groups)
+    conditions = [{
+      path_pattern = "/${local.service_name}/*"
+    }]
+  }]
+}
+----
+
 == Examples
 
 The link:examples/[examples folder] is the home of example usages of this module.
@@ -17,6 +50,9 @@ These are the examples you can find there.
 
 link:examples/simple/[Simple]::
 The minimum usage of this module.
+
+link:examples/blue-green-deployment/[Blue Green Deployment]::
+A service using blue/green deployments with rollback time set.
 
 link:examples/on-prem/[On Prem]::
 Run your service directly in an on-prem datacenter using ECS Anywhere.

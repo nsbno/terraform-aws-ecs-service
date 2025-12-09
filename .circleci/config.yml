@@ -15,6 +15,7 @@ example-folders: &example-folders
   - examples/autoscaling
   - examples/autoscaling-predictive
   - examples/autoscaling-with-custom-metrics
+  - examples/blue-green-deployment
 
 workflows:
   validate:
