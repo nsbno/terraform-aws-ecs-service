@@ -725,7 +725,7 @@ locals {
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
       memory_soft_limit = try(container.memory_soft_limit, null)
-      stop_timeout       = try(container.stop_timeout, null)
+      stop_timeout      = try(container.stop_timeout, null)
       extra_options     = try(container.extra_options, {})
     } if container != null
   ]
