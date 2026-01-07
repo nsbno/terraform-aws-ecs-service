@@ -722,8 +722,8 @@ locals {
       secrets          = try(container.secrets, {})
       port             = try(container.port, null)
       network_protocol = try(container.network_protocol, "tcp")
-      # Add port name for Service Connect if enabled and this is the application container
-      port_name         = (var.service_connect_configuration.enabled && container.name == var.application_container.name) ? "${var.service_name}-port" : null
+      # Add port name for Service Connect if enabled for the application container
+      port_name         = (var.service_connect_configuration.enabled && container.name == var.application_container.name) ? var.service_name : null
       health_check      = try(container.health_check, null)
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
