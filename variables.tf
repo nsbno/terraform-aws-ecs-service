@@ -531,8 +531,8 @@ variable "service_connect_configuration" {
   }
 
   validation {
-    condition     = !var.service_connect_configuration.enabled || (var.service_connect_configuration.client_aliases == null || length(var.service_connect_configuration.client_aliases) > 0)
-    error_message = "When service_connect_configuration is enabled, it must contain at least one client alias"
+    condition     = !var.service_connect_configuration.enabled || var.service_connect_configuration.client_aliases == null || try(length(var.service_connect_configuration.client_aliases), 0) > 0
+    error_message = "When service_connect_configuration is enabled and client_aliases is provided, it must contain at least one entry"
   }
 }
 
