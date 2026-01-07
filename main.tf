@@ -949,10 +949,7 @@ resource "aws_ecs_service" "service" {
   # Always create a count to ease transition where we had multiple services before
   count = var.service_name != "" ? 1 : 0
 
-  depends_on = [
-    terraform_data.no_launch_type_and_spot,
-    aws_ecs_task_definition.task
-  ]
+  depends_on = [terraform_data.no_launch_type_and_spot]
 
   name            = var.service_name
   cluster         = var.cluster_id
