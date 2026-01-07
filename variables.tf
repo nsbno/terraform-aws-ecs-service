@@ -524,15 +524,5 @@ variable "service_connect_configuration" {
   default = {
     enabled = false
   }
-
-  validation {
-    condition     = !var.service_connect_configuration.enabled || (var.service_connect_configuration.enabled && var.service_connect_configuration.namespace != null)
-    error_message = "When service_connect_configuration is enabled, namespace must be provided"
-  }
-
-  validation {
-    condition     = !var.service_connect_configuration.enabled || var.service_connect_configuration.client_aliases == null || try(length(var.service_connect_configuration.client_aliases), 0) > 0
-    error_message = "When service_connect_configuration is enabled and client_aliases is provided, it must contain at least one entry"
-  }
 }
 
