@@ -56,6 +56,7 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       "ecr:BatchGetImage",
       "logs:CreateLogStream",
       "logs:PutLogEvents",
+      "logs:CreateLogGroup"
     ]
   }
 
@@ -716,11 +717,13 @@ locals {
       command = try(container.command, null)
       # Only the application container is essential
       # Container names have to be unique, so this is guaranteed to be correct.
-      essential         = try(container.essential, container.name == var.application_container.name)
-      environment       = try(container.environment, {})
-      secrets           = try(container.secrets, {})
-      port              = try(container.port, null)
-      network_protocol  = try(container.network_protocol, "tcp")
+      essential        = try(container.essential, container.name == var.application_container.name)
+      environment      = try(container.environment, {})
+      secrets          = try(container.secrets, {})
+      port             = try(container.port, null)
+      network_protocol = try(container.network_protocol, "tcp")
+      # Add port name for Service Connect if enabled and this is the application container
+      port_name         = (var.service_connect_configuration.enabled && container.name == var.application_container.name) ? "${var.service_name}-port" : null
       health_check      = try(container.health_check, null)
       cpu               = try(container.cpu, null)
       memory_hard_limit = try(container.memory_hard_limit, null)
@@ -779,11 +782,14 @@ resource "aws_ecs_task_definition" "task" {
       ]
       portMappings = container.port == null ? [] : concat(
         [for port in concat([container.port], local.application_container_with_overrides.extra_ports) :
-          {
-            containerPort = tonumber(port)
-            hostPort      = tonumber(port)
-            protocol      = container.network_protocol
-          }
+          merge(
+            {
+              containerPort = tonumber(port)
+              hostPort      = tonumber(port)
+              protocol      = container.network_protocol
+            },
+            container.port_name != null && port == container.port ? { name = container.port_name } : {}
+          )
         ]
       )
       logConfiguration = {
@@ -846,11 +852,14 @@ resource "aws_ecs_task_definition" "task_datadog" {
       ]
       portMappings = container.port == null ? [] : concat(
         [for port in concat([container.port], local.application_container_with_overrides.extra_ports) :
-          {
-            containerPort = tonumber(port)
-            hostPort      = tonumber(port)
-            protocol      = container.network_protocol
-          }
+          merge(
+            {
+              containerPort = tonumber(port)
+              hostPort      = tonumber(port)
+              protocol      = container.network_protocol
+            },
+            container.port_name != null && port == container.port ? { name = container.port_name } : {}
+          )
         ]
       )
 
@@ -1027,6 +1036,61 @@ resource "aws_ecs_service" "service" {
     content {
       type       = placement_constraints.value.type
       expression = placement_constraints.value.expression
+    }
+  }
+
+  # Service Connect configuration for HTTP-only DNS-based service discovery
+  dynamic "service_connect_configuration" {
+    for_each = var.service_connect_configuration.enabled ? [1] : []
+
+    content {
+      enabled   = true
+      namespace = var.service_connect_configuration.namespace
+
+      # Service configuration for HTTP-only communication
+      service {
+        port_name      = var.service_name
+        discovery_name = coalesce(var.service_connect_configuration.discovery_name, var.service_name)
+
+        # Support multiple client aliases
+        dynamic "client_alias" {
+          for_each = var.service_connect_configuration.client_aliases != null ? var.service_connect_configuration.client_aliases : []
+
+          content {
+            port     = client_alias.value.port
+            dns_name = client_alias.value.dns_name
+          }
+        }
+
+        # Optional timeout configuration
+        dynamic "timeout" {
+          for_each = var.service_connect_configuration.timeout != null ? [var.service_connect_configuration.timeout] : []
+
+          content {
+            idle_timeout_seconds        = timeout.value.idle_timeout_seconds
+            per_request_timeout_seconds = timeout.value.per_request_timeout_seconds
+          }
+        }
+      }
+
+      # Optional log configuration for Service Connect proxy
+      dynamic "log_configuration" {
+        for_each = var.service_connect_configuration.log_configuration != null ? [var.service_connect_configuration.log_configuration] : []
+
+        content {
+          log_driver = log_configuration.value.log_driver
+          options    = log_configuration.value.options
+
+          dynamic "secret_option" {
+            for_each = log_configuration.value.secret_options != null ? log_configuration.value.secret_options : []
+
+            content {
+              name       = secret_option.value.name
+              value_from = secret_option.value.value_from
+            }
+          }
+        }
+      }
     }
   }
 

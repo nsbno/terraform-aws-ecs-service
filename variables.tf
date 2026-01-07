@@ -492,3 +492,47 @@ variable "team_name_override" {
   type        = string
   default     = null
 }
+
+variable "service_connect_configuration" {
+  description = "Configuration for ECS Service Connect with HTTP-only DNS-based service discovery"
+  type = object({
+    enabled   = bool
+    namespace = optional(string)
+
+    # Client aliases for DNS resolution - supports multiple aliases
+    client_aliases = optional(list(object({
+      port     = number
+      dns_name = string # DNS name for this alias
+    })))
+
+    # Optional configuration
+    discovery_name = optional(string) # Discovery name for the service (defaults to service_name)
+    timeout = optional(object({
+      idle_timeout_seconds        = optional(number)
+      per_request_timeout_seconds = optional(number)
+    }))
+
+    log_configuration = optional(object({
+      log_driver = string
+      options    = optional(map(string))
+      secret_options = optional(list(object({
+        name       = string
+        value_from = string
+      })))
+    }))
+  })
+  default = {
+    enabled = false
+  }
+
+  validation {
+    condition     = !var.service_connect_configuration.enabled || (var.service_connect_configuration.enabled && var.service_connect_configuration.namespace != null)
+    error_message = "When service_connect_configuration is enabled, namespace must be provided"
+  }
+
+  validation {
+    condition     = !var.service_connect_configuration.enabled || (var.service_connect_configuration.client_aliases == null || length(var.service_connect_configuration.client_aliases) > 0)
+    error_message = "When service_connect_configuration is enabled, it must contain at least one client alias"
+  }
+}
+
