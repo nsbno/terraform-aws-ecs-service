@@ -492,3 +492,9 @@ variable "team_name_override" {
   type        = string
   default     = null
 }
+
+variable "dd_service_name_override" {
+  description = "Override the service name tag for Datadog. You can use if service name has prefix and you want to remove it for Datadog."
+  type        = string
+  default     = null
+}
