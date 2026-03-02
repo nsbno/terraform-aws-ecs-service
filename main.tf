@@ -862,7 +862,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
           compress   = "gzip",
           TLS        = "on"
           provider   = "ecs"
-          dd_service = var.service_name,
+          dd_service = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name,
           # Version tag should be appended dynamically in GitHub Actions
           dd_tags = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${var.application_container.image.git_sha}"]))
         }
@@ -880,7 +880,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
       memory            = container.memory_hard_limit
       memoryReservation = container.memory_soft_limit
       dockerLabels = {
-        "com.datadoghq.tags.service" = var.service_name
+        "com.datadoghq.tags.service" = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name
         "com.datadoghq.tags.env"     = local.environment
         "com.datadoghq.tags.team"    = var.team_name_override != null ? var.team_name_override : local.team_name
       }
