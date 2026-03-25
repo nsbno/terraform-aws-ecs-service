@@ -601,7 +601,7 @@ locals {
 
         DD_SITE = "datadoghq.eu"
 
-        DD_SERVICE = var.service_name
+        DD_SERVICE = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name
         DD_ENV     = local.environment
         DD_TAGS    = local.team_name_tag
 
@@ -666,7 +666,7 @@ module "autoinstrumentation_setup" {
 
   datadog_instrumentation_runtime = var.datadog_instrumentation_runtime
 
-  dd_service           = var.service_name
+  dd_service           = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name
   dd_env               = local.environment
   dd_team_tag          = local.team_name_tag
   dd_profiling_enabled = var.datadog_options.profiling_enabled
