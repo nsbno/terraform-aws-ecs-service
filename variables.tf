@@ -402,19 +402,25 @@ variable "datadog_instrumentation_runtime" {
 }
 
 variable "datadog_options" {
-  description = "Options for the Datadog Agent Extension"
+  description = "Options for the Datadog Agent Extension. Include the properties you want to modify, the others will use a default value"
   type = object({
-    trace_startup_logs            = optional(bool)
-    trace_partial_flush_min_spans = optional(number)
-    profiling_enabled             = optional(bool)
-    apm_enabled                   = optional(bool)
+    trace_startup_logs                    = optional(bool)
+    trace_partial_flush_min_spans         = optional(number)
+    profiling_enabled                     = optional(bool)
+    apm_enabled                           = optional(bool)
+    appsec_enabled                        = optional(bool)
+    runtime_code_analysis                 = optional(bool)
+    runtime_software_composition_analysis = optional(bool)
+    app_protection_enabled                = optional(bool)
   })
   default = {
-    trace_startup_logs            = false # Datadog default is true.
-    trace_partial_flush_min_spans = 2000  # Datadog default is 1000.
-    profiling_enabled             = false
-    apm_enabled                   = true
-    # We set 2000 so the smallest vCPU instances can handle it.
+    trace_startup_logs                    = false # Datadog default is true.
+    trace_partial_flush_min_spans         = 2000  # Datadog default is 1000.
+    profiling_enabled                     = false
+    apm_enabled                           = true
+    app_protection_enabled                = false
+    runtime_code_analysis                 = false
+    runtime_software_composition_analysis = false
   }
 }
 

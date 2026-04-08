@@ -605,15 +605,15 @@ locals {
         DD_ENV     = local.environment
         DD_TAGS    = local.team_name_tag
 
-        DD_APM_ENABLED            = var.datadog_options.apm_enabled
+        DD_APM_ENABLED            = local.datadog_options.apm_enabled
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
         # Reject anything ending in /health
         DD_APM_FILTER_TAGS_REGEX_REJECT = "http.url:.*\\/health$"
         DD_ECS_TASK_COLLECTION_ENABLED  = "true"
 
         # DATADOG Startup
-        DD_TRACE_STARTUP_LOGS            = var.datadog_options.trace_startup_logs
-        DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = var.datadog_options.trace_partial_flush_min_spans
+        DD_TRACE_STARTUP_LOGS            = local.datadog_options.trace_startup_logs
+        DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = local.datadog_options.trace_partial_flush_min_spans
       }, var.datadog_environment_variables),
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
@@ -657,6 +657,22 @@ locals {
     for k, v in var.application_container.environment : k => v
     if !contains(["JAVA_TOOL_OPTIONS", "NODE_OPTIONS"], k)
   }
+
+  // A bit hacky. We're basically replicating var.datadog_options
+  // but ensuring that if the user has only partially specified the properties under var.datadog_options
+  // we will use the default values for the non-specified ones.
+  //
+  // If not, all non-specified values becomes `null`. Which we don't want.
+  datadog_options = {
+    trace_startup_logs            = coalesce(var.datadog_options.trace_startup_logs, false)           # Datadog default is true.
+    trace_partial_flush_min_spans = coalesce(var.datadog_options.trace_partial_flush_min_spans, 2000) # Datadog default is 1000.
+    profiling_enabled             = coalesce(var.datadog_options.profiling_enabled, false)
+    apm_enabled                   = coalesce(var.datadog_options.apm_enabled, true)
+
+    app_protection_enabled                = coalesce(var.datadog_options.app_protection_enabled, false)
+    runtime_code_analysis                 = coalesce(var.datadog_options.runtime_code_analysis, false)
+    runtime_software_composition_analysis = coalesce(var.datadog_options.runtime_software_composition_analysis, false)
+  }
 }
 
 module "autoinstrumentation_setup" {
@@ -669,7 +685,11 @@ module "autoinstrumentation_setup" {
   dd_service           = var.service_name
   dd_env               = local.environment
   dd_team_tag          = local.team_name_tag
-  dd_profiling_enabled = var.datadog_options.profiling_enabled
+  dd_profiling_enabled = local.datadog_options.profiling_enabled
+
+  dd_runtime_code_analysis                 = local.datadog_options.runtime_code_analysis
+  dd_runtime_software_composition_analysis = local.datadog_options.runtime_software_composition_analysis
+  dd_app_protection                        = local.datadog_options.app_protection_enabled
 
   existing_java_tool_options = local.existing_java_tool_options
   existing_node_options      = local.existing_node_options
@@ -698,8 +718,7 @@ locals {
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []
-    }
-  )
+  })
   init_container = var.datadog_instrumentation_runtime == null ? [] : [module.autoinstrumentation_setup[0].init_container_definition]
 
   containers = [

@@ -21,6 +21,21 @@ variable "dd_profiling_enabled" {
   type        = bool
 }
 
+variable "dd_app_protection" {
+  description = "Enable Datadog App & API Protection"
+  type        = bool
+}
+
+variable "dd_runtime_code_analysis" {
+  description = "Enable Datadog IAST"
+  type        = bool
+}
+
+variable "dd_runtime_software_composition_analysis" {
+  description = "Enable Datadog's Runtime SCA"
+  type        = bool
+}
+
 variable "existing_java_tool_options" {
   description = "Existing JAVA_TOOL_OPTIONS value to append Datadog javaagent to"
   type        = string

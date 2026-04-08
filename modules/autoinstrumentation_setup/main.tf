@@ -60,6 +60,11 @@ locals {
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
         DD_TAGS    = var.dd_team_tag
+
+        // Different runtime security features that can be enabled in the service
+        DD_IAST_ENABLED       = var.dd_runtime_code_analysis
+        DD_APPSEC_SCA_ENABLED = var.dd_runtime_software_composition_analysis
+        DD_APPSEC_ENABLED     = var.dd_app_protection
       }
       extra_options = {
         dependsOn = [
@@ -86,6 +91,11 @@ locals {
 
         DD_SERVICE = var.dd_service
         DD_ENV     = var.dd_env
+
+        // Different runtime security features that can be enabled in the service
+        DD_IAST_ENABLED       = var.dd_runtime_code_analysis
+        DD_APPSEC_SCA_ENABLED = var.dd_runtime_software_composition_analysis
+        DD_APPSEC_ENABLED     = var.dd_app_protection
       }
       extra_options = {
         dependsOn = [
