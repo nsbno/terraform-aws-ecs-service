@@ -1,0 +1,44 @@
+name: Validate Terraform
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  terraform-fmt:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85
+        with:
+          terraform_version: 1.14.8
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+  validate-module:
+    uses: ./.github/workflows/terraform-validate.yml
+    with:
+      working_directory: .
+      terraform_version: 1.14.8
+
+  validate-examples:
+    strategy:
+      matrix:
+        working_directory:
+          - examples/simple
+          - examples/on-prem
+          - examples/datadog
+          - examples/autoscaling
+          - examples/autoscaling-predictive
+          - examples/autoscaling-with-custom-metrics
+          - examples/blue-green-deployment
+    uses: ./.github/workflows/terraform-validate.yml
+    with:
+      working_directory: ${{ matrix.working_directory }}
+      terraform_version: 1.14.8
