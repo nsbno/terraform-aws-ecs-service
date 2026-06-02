@@ -14,6 +14,12 @@ variable "cluster_id" {
   type        = string
 }
 
+variable "is_preview_supported" {
+  type = bool
+  description = "Determines whether or not preview environments are supported by this service. Modules that do not support preview are simpler"
+  default = true
+}
+
 variable "application_container" {
   description = "The application that is being run by the service"
   type = object({
