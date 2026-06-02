@@ -592,8 +592,15 @@ locals {
 
   datadog_containers = var.enable_datadog == true ? [
     {
-      name      = "datadog-agent",
-      image     = "public.ecr.aws/datadog/agent:latest",
+      name = "datadog-agent",
+
+      // Best case, we could pin this agent to an EXACT version, but it is too difficult to maintain
+      // and would've become a real pain for the users of this module, having to constantly upgrade.
+      // Therefore we lock it to a major version, reducing the risk of unexpected compatibility problems,
+      // while ensuring that these agents are running the latest (patched) version.
+      //
+      // Consider to revisit this approach in the future.
+      image     = "public.ecr.aws/datadog/agent:7",
       essential = true,
 
       environment = merge({
