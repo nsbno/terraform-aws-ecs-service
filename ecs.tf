@@ -130,6 +130,7 @@ module "autoinstrumentation_setup" {
 }
 
 module "env_vars_to_ssm_parameters" {
+  count = true ? 1 : 0
   source = "./modules/env_vars_to_ssm_parameters"
 
   // Temporary measure. We need the ability to not create this in a future change.
@@ -153,10 +154,12 @@ moved {
 }
 
 locals {
+
+  # When var.is_preview_supported = true, then all environment vars are converted to SSM parameters, and handled in secrets. Because only secrets support valueFrom
   environment_variables = var.is_preview_supported == true ? {} : local.filtered_environment_variables
   autoinstrumented_environment_variables = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
 
-  secrets = var.is_preview_supported == true ? module.env_vars_to_ssm_parameters.ssm_parameter_arns : merge(
+  secrets = var.is_preview_supported == true ? module.env_vars_to_ssm_parameters[0].ssm_parameter_arns : merge(
     var.application_container.secrets,
     var.application_container.secrets_to_override,
     var.application_container.secrets_from_ssm,
@@ -166,8 +169,7 @@ locals {
   application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
 
-    # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
-    environment   = merge(local.autoinstrumented_environment_variables, local.environment_variables)
+    environment   = merge(local.environment_variables, local.autoinstrumented_environment_variables)
     secrets       = local.secrets
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
