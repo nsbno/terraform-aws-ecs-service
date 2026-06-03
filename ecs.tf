@@ -130,12 +130,10 @@ module "autoinstrumentation_setup" {
 }
 
 module "env_vars_to_ssm_parameters" {
-  count = true ? 1 : 0
   source = "./modules/env_vars_to_ssm_parameters"
 
-  // Temporary measure. We need the ability to not create this in a future change.
-  // Opening the possibility up now, so that we can enable it without destructive changes
-  count = true ? 1 : 0
+  // Only need to create these resources for the Preview environment
+  count = var.is_preview_supported == true ? 1 : 0
 
   service_name           = var.service_name
   task_execution_role_id = aws_iam_role.execution.id
