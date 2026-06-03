@@ -132,6 +132,10 @@ module "autoinstrumentation_setup" {
 module "env_vars_to_ssm_parameters" {
   source = "./modules/env_vars_to_ssm_parameters"
 
+  // Temporary measure. We need the ability to not create this in a future change.
+  // Opening the possibility up now, so that we can enable it without destructive changes
+  count = true ? 1 : 0
+
   service_name           = var.service_name
   task_execution_role_id = aws_iam_role.execution.id
 
@@ -142,13 +146,19 @@ module "env_vars_to_ssm_parameters" {
   secrets_from_ssm      = var.application_container.secrets_from_ssm
 }
 
+// TODO(fredrik) Remove this moved block in the next release
+moved {
+  from = module.env_vars_to_ssm_parameters
+  to   = module.env_vars_to_ssm_parameters[0]
+}
+
 locals {
   # Override application container keys
   application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
     # Environment vars are all converted to SSM parameters, handled in secrets. Only secrets support valueFrom
     environment   = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
-    secrets       = module.env_vars_to_ssm_parameters.ssm_parameter_arns
+    secrets       = module.env_vars_to_ssm_parameters[0].ssm_parameter_arns
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []
