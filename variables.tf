@@ -15,13 +15,14 @@ variable "cluster_id" {
 }
 
 variable "is_preview_supported" {
-  type = bool
+  type        = bool
   description = "Determines whether or not preview environments are supported by this service. Modules that do not support preview are simpler"
-  default = true
+  default     = true
 }
 
 variable "application_container" {
   description = "The application that is being run by the service"
+
   type = object({
     name = string
     image = object({
@@ -38,6 +39,15 @@ variable "application_container" {
     secrets_from_ssm = optional(map(string), {})
     # Will be used in env_vars_to_ssm_parameters to create secure SSM parameters to be overwritten
     secrets_to_override = optional(map(string), {})
+
+    # Reference secrets that originate from SecretsManager,
+    # will be injected as an environment variable to your container.
+    # Not supported by Preview environments
+    secrets_from_secretsmanager = optional(map(object({
+      id = string
+      # if you need to select a specific field inside SecretsManager
+      json_path = optional(string)
+    })), {})
 
     cpu               = optional(number)
     memory_hard_limit = optional(number)

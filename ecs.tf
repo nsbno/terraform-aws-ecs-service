@@ -152,12 +152,20 @@ moved {
 }
 
 locals {
-
   # When var.is_preview_supported = true, then all environment vars are converted to SSM parameters, and handled in secrets. Because only secrets support valueFrom
-  environment_variables = var.is_preview_supported == true ? {} : local.filtered_environment_variables
+  environment_variables                  = var.is_preview_supported == true ? {} : local.filtered_environment_variables
   autoinstrumented_environment_variables = var.datadog_instrumentation_runtime == null ? {} : module.autoinstrumentation_setup[0].new_environment
 
-  secrets = var.is_preview_supported == true ? module.env_vars_to_ssm_parameters[0].ssm_parameter_arns : merge(
+  # Some secrets originate from SecretsManager instead of SSM.
+  # We should provide some form of first hand support to those as well
+  secrets_from_secretsmanager = {
+    for key, value in var.application_container.secrets_from_secretsmanager :
+    # Make sure we support the structure specified here:
+    # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html
+    key => value.json_path != null ? "${value.id}:${value.json_path}::" : value.id
+  }
+
+  ssm_secrets = var.is_preview_supported == true ? module.env_vars_to_ssm_parameters[0].ssm_parameter_arns : merge(
     var.application_container.secrets,
     var.application_container.secrets_to_override,
     var.application_container.secrets_from_ssm,
@@ -167,8 +175,8 @@ locals {
   application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
 
-    environment   = merge(local.environment_variables, local.autoinstrumented_environment_variables)
-    secrets       = local.secrets
+    environment = merge(local.environment_variables, local.autoinstrumented_environment_variables)
+    secrets     = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []

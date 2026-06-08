@@ -25,6 +25,9 @@ module "ecs_service" {
   private_subnet_ids = data.aws_subnets.private.ids
   cluster_id         = data.aws_ecs_cluster.main.id
 
+  // true, if you need the ability to deploy to preview environments (increases complexity)
+  is_preview_supported = false
+
   application_container = {
     name     = "main"
     image    = data.vy_ecs_image.this
@@ -68,6 +71,9 @@ A simple service using predictive autoscaling.
 
 link:examples/datadog/[With Datadog]::
 A service with Datadog and autoinstrumentation enabled.
+
+link:examples/without-preview-support/[Without Preview Support]::
+Simple service where Preview support is disabled.
 
 == Arguments
 

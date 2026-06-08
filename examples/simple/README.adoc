@@ -1,3 +1,0 @@
-= Simple Example
-
-This example is the bare minimum for using this module.

@@ -203,3 +203,82 @@ resource "aws_iam_role_policy" "for_load_balancers" {
   role   = aws_iam_role.infrastructure_for_load_balancers.id
   policy = data.aws_iam_policy_document.load_balancer_and_target_groups.json
 }
+
+// Fetch info about each secret, so we can automatically discover which KMS
+// key permissions are needed
+data "aws_secretsmanager_secret" "secrets_to_read" {
+  for_each = var.application_container.secrets_from_secretsmanager
+
+  arn = each.value.id
+}
+
+locals {
+  ssm_parameter_arns_permissions_to_read = [for _, arn in local.ssm_secrets : arn]
+  secrets_to_read                        = toset([for secret in data.aws_secretsmanager_secret.secrets_to_read : secret.arn])
+
+  # KMS keys that's being used by SecretsManager
+  # should be granted decrypt access
+  secrets_kms_key_arns = toset([
+    for secret in data.aws_secretsmanager_secret.secrets_to_read : secret.kms_key_id
+    if secret.kms_key_id != "" && !startswith(secret.kms_key_id, "alias/aws/")
+  ])
+
+  has_any_secrets = length(local.ssm_parameter_arns_permissions_to_read) > 0 || length(local.secrets_to_read) > 0
+}
+
+// Grants the execution role access to read Secrets and SSM parameters
+// that is referenced in var.application_container.
+resource "aws_iam_role_policy" "allow_read_secrets" {
+  count = local.has_any_secrets ? 1 : 0
+
+  role   = aws_iam_role.execution.name
+  policy = data.aws_iam_policy_document.allow_read_of_secrets[0].json
+}
+
+data "aws_iam_policy_document" "allow_read_of_secrets" {
+  count = local.has_any_secrets ? 1 : 0
+
+  dynamic "statement" {
+    for_each = length(local.ssm_parameter_arns_permissions_to_read) > 0 ? [1] : []
+
+    content {
+      effect    = "Allow"
+      resources = local.ssm_parameter_arns_permissions_to_read
+
+      actions = [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:DescribeParameters",
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(local.secrets_to_read) > 0 ? [1] : []
+
+    content {
+      effect    = "Allow"
+      resources = local.secrets_to_read
+
+      actions = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret",
+      ]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(local.secrets_kms_key_arns) > 0 ? [1] : []
+
+    content {
+      effect    = "Allow"
+      resources = local.secrets_kms_key_arns
+
+      actions = [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+      ]
+    }
+  }
+}
