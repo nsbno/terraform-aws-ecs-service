@@ -1,0 +1,71 @@
+@startuml ecs-service-overview
+!theme plain
+left to right direction
+
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v23.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/AWSSimplified.puml
+!include AWSPuml/Containers/ElasticContainerServiceService.puml
+!include AWSPuml/Containers/ElasticContainerServiceTask.puml
+!include AWSPuml/NetworkingContentDelivery/ElasticLoadBalancing.puml
+!include AWSPuml/SecurityIdentityCompliance/IdentityAccessManagementRole.puml
+!include AWSPuml/ManagementGovernance/CloudWatchLogs.puml
+!include AWSPuml/ManagementGovernance/SystemsManagerParameterStore.puml
+!include AWSPuml/ManagementGovernance/ApplicationAutoScaling2.puml
+
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!includeurl ICONURL/common.puml
+!includeurl ICONURL/font-awesome-5/github.puml
+
+skinparam rectangle<<no_border>> {
+  BorderColor transparent
+  BackgroundColor transparent
+  shadowing false
+}
+
+title terraform-aws-ecs-service
+
+legend top right
+  |= Color |= Meaning |
+  | <#FFFFFF> | Always created |
+  | <#FCE4EC> | Preview-support only |
+endlegend
+
+
+ElasticContainerServiceService(service, "ECS Service", "Fargate or EC2")
+ElasticContainerServiceTask(taskdef, "Task Definition",)
+ElasticLoadBalancing(lb, "Load balancing", "blue/green pair")
+ApplicationAutoScaling2(autoscaling, "Auto Scaling", "optional")
+
+service -r-> taskdef: Uses
+lb --> service: 0..2 \n0 = No HTTP traffic\n2 = Blue/green support
+autoscaling ..> service: 0..1
+
+package "Obervability" as observability {
+    component "Datadog\n(default)" as datadog
+    CloudWatchLogs(logs, "CloudWatch Logs", "")
+}
+
+service ..> observability: Logs, APM, Profiling, Metrics
+
+package "Preview Support (is_preview_supported = true)" <<Rectangle>> #FCE4EC {
+  SystemsManagerParameterStore(ssm, "SSM Parameters", "env vars and secrets as SSM")
+}
+
+rectangle "<color:#000000><$github></color>\n GitHub Actions: \nECS Deploy" as github <<no_border>>
+
+package "Deployment parameters" as deployParameters {
+    SystemsManagerParameterStore(ssmDeploy, "/~__deployment~__/<containerImageId>/*",)
+}
+
+github -u-> ssmDeploy : read
+service --> ssm: Read
+taskdef ..> ssmDeploy: Sync
+
+note bottom of ssm
+  All env vars and secrets become SSM Parameters,
+  enabling per-preview overrides without
+  new task definitions.
+end note
+
+@enduml

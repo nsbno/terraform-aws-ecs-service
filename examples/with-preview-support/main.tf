@@ -1,6 +1,6 @@
 locals {
   name_prefix  = "infrademo"
-  service_name = "without-preview"
+  service_name = "with-preview"
 }
 
 /*
@@ -85,6 +85,8 @@ module "service" {
       SECRET = aws_ssm_parameter.secret.arn
     }
 
+    # These won't be accessible in the preview environments
+    # (not supported yet)
     secrets_from_secretsmanager = {
       MY_SECRET = {
         id = aws_secretsmanager_secret.secret.arn
@@ -100,7 +102,7 @@ module "service" {
     }
   }
 
-  is_preview_supported = false
+  is_preview_supported = true
 
   lb_listeners = [{
     listener_arn      = data.aws_lb_listener.https.arn
