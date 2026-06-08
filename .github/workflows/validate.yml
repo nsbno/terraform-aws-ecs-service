@@ -17,6 +17,8 @@ jobs:
       matrix:
         working_directory:
           - examples/simple # Part of the required status checks in GitHub
+          - examples/without-preview-support # Part of the required status checks in GitHub
+          - examples/with-preview-support # Part of the required status checks in GitHub
           - examples/on-prem
           - examples/datadog
           - examples/autoscaling
