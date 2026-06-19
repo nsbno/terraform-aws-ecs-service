@@ -29,6 +29,8 @@ locals {
       // Consider to revisit this approach in the future.
       image     = "public.ecr.aws/datadog/agent:7",
       essential = true,
+      cpu       = 64,
+      memory_hard_limit = 256,
 
       environment = merge({
         ECS_FARGATE = "true"
@@ -64,6 +66,8 @@ locals {
       name      = "log-router",
       image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
       essential = true,
+      cpu       = 64,
+      memory_hard_limit = 256,
 
       extra_options = {
         firelensConfiguration = {
