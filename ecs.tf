@@ -27,9 +27,9 @@ locals {
       // while ensuring that these agents are running the latest (patched) version.
       //
       // Consider to revisit this approach in the future.
-      image     = "public.ecr.aws/datadog/agent:7",
-      essential = true,
-      cpu       = 64,
+      image             = "public.ecr.aws/datadog/agent:7",
+      essential         = true,
+      cpu               = 64,
       memory_hard_limit = 256,
 
       environment = merge({
@@ -63,10 +63,10 @@ locals {
       }
     },
     {
-      name      = "log-router",
-      image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
-      essential = true,
-      cpu       = 64,
+      name              = "log-router",
+      image             = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
+      essential         = true,
+      cpu               = 64,
       memory_hard_limit = 256,
 
       extra_options = {
