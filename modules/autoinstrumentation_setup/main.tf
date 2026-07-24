@@ -16,7 +16,7 @@ locals {
             containerPath = "/datadog-instrumentation-init"
           }
         ]
-        user = "root"
+        user = "0"
       }
     }
     "jvm" : {
@@ -33,7 +33,7 @@ locals {
             containerPath = "/datadog-instrumentation-init"
           }
         ]
-        user = "root"
+        user = "0"
       }
     }
   }
