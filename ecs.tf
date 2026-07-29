@@ -181,8 +181,8 @@ locals {
   application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
 
-    environment = merge(local.environment_variables, local.autoinstrumented_environment_variables)
-    secrets     = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
+    environment   = merge(local.environment_variables, local.autoinstrumented_environment_variables)
+    secrets       = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
     extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []
