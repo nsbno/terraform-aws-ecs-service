@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 6.15.0, < 7.0.0"
     }
+    awscc = {
+      source  = "hashicorp/awscc"
+      version = ">= 1.0.0"
+    }
     vy = {
       source  = "nsbno/vy"
       version = ">= 1.0.0, < 2.0.0"
@@ -13,6 +17,10 @@ terraform {
 
 
 provider "aws" {
+  region = "eu-west-1"
+}
+
+provider "awscc" {
   region = "eu-west-1"
 }
 

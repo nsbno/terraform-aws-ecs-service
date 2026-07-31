@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 6.15.0, <7.0.0"
     }
+    awscc = {
+      source  = "hashicorp/awscc"
+      version = ">= 1.0.0"
+    }
     datadog = {
       source  = "DataDog/datadog"
       version = ">= 3.81.0" # Check for the newest version here: https://registry.terraform.io/providers/DataDog/datadog/latest
@@ -29,5 +33,9 @@ provider "datadog" {
 }
 
 provider "aws" {
+  region = "eu-west-1"
+}
+
+provider "awscc" {
   region = "eu-west-1"
 }

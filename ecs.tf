@@ -177,9 +177,10 @@ locals {
     var.application_container.secrets_from_ssm,
   )
 
+  application_container_image_id = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
   # Override application container keys
   application_container_with_overrides = merge(var.application_container, {
-    image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
+    image = local.application_container_image_id
 
     environment   = merge(local.environment_variables, local.autoinstrumented_environment_variables)
     secrets       = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
