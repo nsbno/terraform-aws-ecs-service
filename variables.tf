@@ -428,6 +428,17 @@ variable "datadog_options" {
     runtime_code_analysis                 = optional(bool)
     runtime_software_composition_analysis = optional(bool)
     app_protection_enabled                = optional(bool)
+
+    # Ship container logs to Datadog through a FireLens (FluentBit) sidecar.
+    #
+    # Left unset this is true everywhere except launch_type = "EXTERNAL", where FireLens needs
+    # an ECS container agent of at least v1.93.0 on the instance. Set it to true explicitly
+    # once your ECS Anywhere instances have been upgraded -- see local.datadog_firelens_enabled
+    # in ecs.tf for the details.
+    #
+    # When false the containers log to CloudWatch instead, and only traces, metrics and
+    # profiles reach Datadog.
+    firelens_logs_enabled = optional(bool)
   })
   default = {
     trace_startup_logs                    = false # Datadog default is true.
