@@ -54,26 +54,6 @@ locals {
     },
   ]
 
-  # Whether to route container logs to Datadog through the FireLens sidecar, or straight to
-  # CloudWatch with the awslogs driver.
-  #
-  # This is off by default in bridge mode because FireLens needs an ECS container agent of at
-  # least v1.93.0 there. Older agents unconditionally pass the fluentd-async-connect log
-  # option, which Docker deprecated in 20.10.0 and removed in 28.0.0, so on a modern Docker
-  # every container using the awsfirelens driver fails to create with:
-  #   CannotCreateContainerError: unknown log opt 'fluentd-async-connect' for fluentd log driver
-  # v1.93.0 picks the option based on the Docker server version instead:
-  # https://github.com/aws/amazon-ecs-agent/pull/4558
-  #
-  # Note that ECS_ENABLE_FIRELENS_ASYNC=false does not help on an older agent -- it still
-  # writes the key, only with the value "false", and the daemon rejects the key itself.
-  #
-  # Check what an instance is running with:
-  #   aws ecs describe-container-instances --cluster <cluster> --container-instances <arn> \
-  #     --query 'containerInstances[].versionInfo'
-  # and set datadog_options.firelens_logs_enabled = true once it reports >= 1.93.0.
-  datadog_firelens_enabled = var.enable_datadog == true && local.datadog_options.firelens_logs_enabled
-
   datadog_containers = var.enable_datadog == true ? [
     {
       name = "datadog-agent",
@@ -136,9 +116,18 @@ locals {
         startPeriod = 15
       }
     },
-    # Dropped from the task entirely when logs go to CloudWatch instead. Kept as a null so this
-    # stays a two element tuple -- see the note where datadog_containers is consumed below.
-    local.datadog_firelens_enabled ? {
+    # Requires an ECS container agent of at least v1.93.0 on the container instance whenever the
+    # task runs in bridge mode (launch_type = "EXTERNAL"). Older agents unconditionally pass the
+    # fluentd-async-connect log option, which Docker deprecated in 20.10.0 and removed in 28.0.0,
+    # so on a modern Docker every container using the awsfirelens driver fails to create with:
+    #   CannotCreateContainerError: unknown log opt 'fluentd-async-connect' for fluentd log driver
+    # v1.93.0 picks the option based on the Docker server version instead:
+    # https://github.com/aws/amazon-ecs-agent/pull/4558
+    #
+    # Check an instance with:
+    #   aws ecs describe-container-instances --cluster <cluster> --container-instances <arn> \
+    #     --query 'containerInstances[].versionInfo'
+    {
       name              = "log-router",
       image             = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
       essential         = true,
@@ -180,7 +169,7 @@ locals {
           }
         }
       }
-    } : null
+    }
   ] : null
 }
 
@@ -209,9 +198,6 @@ locals {
     app_protection_enabled                = coalesce(var.datadog_options.app_protection_enabled, false)
     runtime_code_analysis                 = coalesce(var.datadog_options.runtime_code_analysis, false)
     runtime_software_composition_analysis = coalesce(var.datadog_options.runtime_software_composition_analysis, false)
-
-    # Defaults to off in bridge mode, on everywhere else. See local.datadog_firelens_enabled.
-    firelens_logs_enabled = coalesce(var.datadog_options.firelens_logs_enabled, !local.is_bridge_network_mode)
   }
 }
 
@@ -468,13 +454,9 @@ resource "aws_ecs_task_definition" "task_datadog" {
         ]
       )
 
-      # Built with merge() rather than one ternary over two whole objects, because the two
-      # branches have different keys (only FireLens takes secretOptions) and Terraform can't
-      # unify those into a single conditional result type.
-      logConfiguration = merge({
-        logDriver = local.datadog_firelens_enabled ? "awsfirelens" : "awslogs"
-
-        options = local.datadog_firelens_enabled ? {
+      logConfiguration = {
+        logDriver = "awsfirelens",
+        options = {
           Name       = "datadog",
           Host       = "http-intake.logs.datadoghq.eu",
           compress   = "gzip",
@@ -483,22 +465,14 @@ resource "aws_ecs_task_definition" "task_datadog" {
           dd_service = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name,
           # Version tag should be appended dynamically in GitHub Actions
           dd_tags = join(",", compact([local.team_name_tag, "env:${local.environment}", "version:${var.application_container.image.git_sha}"]))
-          } : {
-          "awslogs-group"         = aws_cloudwatch_log_group.main.name
-          "awslogs-region"        = data.aws_region.current.region
-          "awslogs-stream-prefix" = container.name
         }
-        },
-        # Only FireLens needs the API key to talk to the Datadog intake; awslogs has no secrets.
-        local.datadog_firelens_enabled ? {
-          secretOptions = [
-            {
-              name      = "apiKey",
-              valueFrom = local.datadog_api_key_secret
-            }
-          ]
-        } : {},
-      )
+        secretOptions = [
+          {
+            name      = "apiKey",
+            valueFrom = local.datadog_api_key_secret
+          }
+        ]
+      }
 
       healthCheck       = container.health_check
       stopTimeout       = container.stop_timeout
