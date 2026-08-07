@@ -3,6 +3,15 @@
  */
 
 locals {
+  # ECS Anywhere can't have "awsvpc" as the network mode.
+  #
+  # Bridge mode is not just a different value here: every container gets its own network
+  # namespace and its own IP, so "localhost" no longer reaches the other containers in the
+  # task. Both the Datadog Agent and the FireLens log router have to be wired up differently
+  # because of it -- see the comments further down.
+  network_mode           = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+  is_bridge_network_mode = local.network_mode == "bridge"
+
   xray_container = var.xray_daemon == true ? [
     {
       name      = "aws-otel-collector",
@@ -16,6 +25,34 @@ locals {
   split_alias       = split("-", data.aws_iam_account_alias.this.account_alias)
   environment_index = length(local.split_alias) - 1
   environment       = local.split_alias[local.environment_index]
+
+  # Outside of Fargate the Agent talks to the local Docker daemon instead of the task
+  # metadata endpoint, so it needs these host paths to run its Docker and container checks.
+  # Taken from Datadog's ECS-on-EC2 task definition. Declared as task volumes on
+  # aws_ecs_task_definition.task_datadog below.
+  datadog_agent_host_volumes = {
+    datadog-docker-socket = "/var/run/docker.sock"
+    datadog-proc          = "/proc/"
+    datadog-cgroup        = "/sys/fs/cgroup/"
+  }
+
+  datadog_agent_host_mount_points = [
+    {
+      sourceVolume  = "datadog-docker-socket"
+      containerPath = "/var/run/docker.sock"
+      readOnly      = true
+    },
+    {
+      sourceVolume  = "datadog-proc"
+      containerPath = "/host/proc/"
+      readOnly      = true
+    },
+    {
+      sourceVolume  = "datadog-cgroup"
+      containerPath = "/host/sys/fs/cgroup/"
+      readOnly      = true
+    },
+  ]
 
   datadog_containers = var.enable_datadog == true ? [
     {
@@ -34,8 +71,6 @@ locals {
       memory_hard_limit = 512,
 
       environment = merge({
-        ECS_FARGATE = "true"
-
         DD_SITE = "datadoghq.eu"
 
         DD_SERVICE = var.dd_service_name_override != null ? var.dd_service_name_override : var.service_name
@@ -51,10 +86,28 @@ locals {
         # DATADOG Startup
         DD_TRACE_STARTUP_LOGS            = local.datadog_options.trace_startup_logs
         DD_TRACE_PARTIAL_FLUSH_MIN_SPANS = local.datadog_options.trace_partial_flush_min_spans
-      }, var.datadog_environment_variables),
+        },
+        # ECS_FARGATE puts the Agent in Fargate mode, where it reads container metadata from
+        # the task metadata endpoint and skips its Docker check. That is only correct for
+        # Fargate/awsvpc tasks -- an ECS Anywhere task runs on a real Docker host, where the
+        # Agent should use the socket and host paths in datadog_agent_host_mount_points.
+        local.is_bridge_network_mode ? {} : { ECS_FARGATE = "true" },
+        # The Agent binds its APM and DogStatsD listeners to loopback only. In awsvpc the
+        # whole task shares one network namespace so that is enough, but in bridge mode the
+        # application container's traffic arrives on the Agent's bridge IP and is refused
+        # unless non-local traffic is allowed.
+        local.is_bridge_network_mode ? {
+          DD_APM_NON_LOCAL_TRAFFIC       = "true"
+          DD_DOGSTATSD_NON_LOCAL_TRAFFIC = "true"
+        } : {},
+        var.datadog_environment_variables
+      ),
       secrets = {
         DD_API_KEY = local.datadog_api_key_secret
       }
+      extra_options = local.is_bridge_network_mode ? {
+        mountPoints = local.datadog_agent_host_mount_points
+      } : {}
       health_check = {
         command     = ["CMD-SHELL", "agent health"]
         interval    = 10
@@ -63,6 +116,17 @@ locals {
         startPeriod = 15
       }
     },
+    # Requires an ECS container agent of at least v1.93.0 on the container instance whenever the
+    # task runs in bridge mode (launch_type = "EXTERNAL"). Older agents unconditionally pass the
+    # fluentd-async-connect log option, which Docker deprecated in 20.10.0 and removed in 28.0.0,
+    # so on a modern Docker every container using the awsfirelens driver fails to create with:
+    #   CannotCreateContainerError: unknown log opt 'fluentd-async-connect' for fluentd log driver
+    # v1.93.0 picks the option based on the Docker server version instead:
+    # https://github.com/aws/amazon-ecs-agent/pull/4558
+    #
+    # Check an instance with:
+    #   aws ecs describe-container-instances --cluster <cluster> --container-instances <arn> \
+    #     --query 'containerInstances[].versionInfo'
     {
       name              = "log-router",
       image             = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
@@ -82,6 +146,28 @@ locals {
         }
         # Bug: To avoid recreation of the task definition: https://github.com/hashicorp/terraform-provider-aws/pull/41394
         user = "0"
+
+        # The log router must not route its own logs through itself. Overrides the awsfirelens
+        # logConfiguration that aws_ecs_task_definition.task_datadog applies to every container.
+        #
+        # In awsvpc the ECS agent hardcodes the fluentd address to 127.0.0.1, so the router
+        # logging to itself is a silent no-op. In bridge mode the agent instead has to resolve
+        # the router's own bridge IP, which does not exist yet when the router is being created
+        # -- and it refuses to make the router wait for itself. Creating the container then
+        # fails with "DockerClientConfigError: unable to get BridgeIP for task in bridge mode",
+        # and because the router is essential the whole task dies.
+        # See addFirelensContainerDependency() in aws/amazon-ecs-agent agent/api/task/task.go.
+        #
+        # CloudWatch is also where you want these logs: if FluentBit is broken, its own
+        # diagnostics should not depend on FluentBit.
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            "awslogs-group"         = aws_cloudwatch_log_group.main.name
+            "awslogs-region"        = data.aws_region.current.region
+            "awslogs-stream-prefix" = "log-router"
+          }
+        }
       }
     }
   ] : null
@@ -177,13 +263,42 @@ locals {
     var.application_container.secrets_from_ssm,
   )
 
+  # The tracer defaults to sending to localhost:8126. In awsvpc the whole task shares one
+  # network namespace so that reaches the Agent, but in bridge mode "localhost" is the
+  # application container itself and the traces are dropped silently.
+  #
+  # A Docker link gives the application a resolvable hostname for the Agent without
+  # publishing any host ports -- which matters on ECS Anywhere, where several tasks share an
+  # instance and would fight over a fixed host port. ECS converts every link into an implicit
+  # dependsOn/START, so the Agent is already running before the application starts.
+  # See the "Handle ordering for Links" block in aws/amazon-ecs-agent agent/api/task/task.go.
+  is_datadog_bridge_wiring_enabled = var.enable_datadog == true && local.is_bridge_network_mode
+
+  datadog_bridge_app_environment = local.is_datadog_bridge_wiring_enabled ? {
+    DD_AGENT_HOST = "datadog-agent"
+  } : {}
+
+  datadog_bridge_app_links = local.is_datadog_bridge_wiring_enabled ? distinct(concat(
+    try(tolist(var.application_container.extra_options.links), []),
+    ["datadog-agent"],
+  )) : []
+
   # Override application container keys
   application_container_with_overrides = merge(var.application_container, {
     image = "${var.application_container.image.ecr_repository_uri}:${var.application_container.image.git_sha}"
 
-    environment   = merge(local.environment_variables, local.autoinstrumented_environment_variables)
-    secrets       = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
-    extra_options = merge(try(module.autoinstrumentation_setup[0].new_extra_options, {}), var.application_container.extra_options)
+    environment = merge(
+      local.environment_variables,
+      local.autoinstrumented_environment_variables,
+      local.datadog_bridge_app_environment,
+    )
+    secrets = merge(local.ssm_secrets, local.secrets_from_secretsmanager)
+    extra_options = merge(
+      try(module.autoinstrumentation_setup[0].new_extra_options, {}),
+      var.application_container.extra_options,
+      # Merged last so a caller-supplied links list is extended rather than replaced.
+      length(local.datadog_bridge_app_links) == 0 ? {} : { links = local.datadog_bridge_app_links },
+    )
     # Extra ports are needed in cases where the Load Balancer Health Check port is different from the application containers normal ports
     extra_ports = try(var.lb_health_check.port, null) != var.application_container.port ? compact([try(var.lb_health_check.port, null)]) : []
   })
@@ -276,7 +391,7 @@ resource "aws_ecs_task_definition" "task" {
         logDriver = "awslogs"
         options = {
           "awslogs-group" : aws_cloudwatch_log_group.main.name,
-          "awslogs-region" : data.aws_region.current.region, # AWS Provider >= 6.0.0
+          "awslogs-region" : data.aws_region.current.region,
           "awslogs-stream-prefix" : container.name
         }
       }
@@ -299,8 +414,7 @@ resource "aws_ecs_task_definition" "task" {
   requires_compatibilities = [var.launch_type]
   cpu                      = var.cpu
   memory                   = var.memory
-  # ECS Anywhere can't have "awsvpc" as the network mode
-  network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+  network_mode             = local.network_mode
 }
 
 resource "aws_ecs_task_definition" "task_datadog" {
@@ -384,8 +498,7 @@ resource "aws_ecs_task_definition" "task_datadog" {
   requires_compatibilities = [var.launch_type]
   cpu                      = var.cpu
   memory                   = var.memory
-  # ECS Anywhere can't have "awsvpc" as the network mode
-  network_mode = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
+  network_mode             = local.network_mode
 
   dynamic "volume" {
     for_each = var.datadog_instrumentation_runtime != null ? [1] : []
@@ -393,6 +506,17 @@ resource "aws_ecs_task_definition" "task_datadog" {
     content {
       configure_at_launch = false
       name                = "datadog-instrumentation-init"
+    }
+  }
+
+  # Host paths the Agent needs when it is not running in Fargate mode.
+  dynamic "volume" {
+    for_each = local.is_bridge_network_mode ? local.datadog_agent_host_volumes : {}
+
+    content {
+      configure_at_launch = false
+      name                = volume.key
+      host_path           = volume.value
     }
   }
 }
