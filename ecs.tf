@@ -10,7 +10,7 @@ locals {
   # task. Both the Datadog Agent and the FireLens log router have to be wired up differently
   # because of it -- see the comments further down.
   network_mode           = var.launch_type == "EXTERNAL" ? "bridge" : "awsvpc"
-  is_bridge_network_mode = var.launch_type == "EXTERNAL"
+  is_bridge_network_mode = local.network_mode == "bridge"
 
   xray_container = var.xray_daemon == true ? [
     {
