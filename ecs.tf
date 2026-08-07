@@ -272,13 +272,13 @@ locals {
   # instance and would fight over a fixed host port. ECS converts every link into an implicit
   # dependsOn/START, so the Agent is already running before the application starts.
   # See the "Handle ordering for Links" block in aws/amazon-ecs-agent agent/api/task/task.go.
-  datadog_bridge_wiring_enabled = var.enable_datadog == true && local.is_bridge_network_mode
+  is_datadog_bridge_wiring_enabled = var.enable_datadog == true && local.is_bridge_network_mode
 
-  datadog_bridge_app_environment = local.datadog_bridge_wiring_enabled ? {
+  datadog_bridge_app_environment = local.is_datadog_bridge_wiring_enabled ? {
     DD_AGENT_HOST = "datadog-agent"
   } : {}
 
-  datadog_bridge_app_links = local.datadog_bridge_wiring_enabled ? distinct(concat(
+  datadog_bridge_app_links = local.is_datadog_bridge_wiring_enabled ? distinct(concat(
     try(tolist(var.application_container.extra_options.links), []),
     ["datadog-agent"],
   )) : []
