@@ -520,3 +520,14 @@ variable "dd_service_name_override" {
   type        = string
   default     = null
 }
+
+variable "lb_secondary_target_group_name_override" {
+  description = "Override the name of the secondary load balancer target group. Maximum length is 32 characters."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.lb_secondary_target_group_name_override == null || length(var.lb_secondary_target_group_name_override) <= 32
+    error_message = "The lb_secondary_target_group_name_override must be null or contain 32 characters or fewer."
+  }
+}

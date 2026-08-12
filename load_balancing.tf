@@ -147,7 +147,11 @@ resource "aws_lb_listener_rule" "service" {
 resource "aws_lb_target_group" "secondary" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
-  name   = trimsuffix(substr("${var.service_name}-secondary-${var.application_container.port}-${each.key}", 0, 32), "-")
+  name = (
+    var.lb_secondary_target_group_name_override != null
+    ? var.lb_secondary_target_group_name_override
+    : trimsuffix(substr("${var.service_name}-secondary-${var.application_container.port}-${each.key}", 0, 32), "-")
+  )
   vpc_id = var.vpc_id
 
   target_type = "ip"
