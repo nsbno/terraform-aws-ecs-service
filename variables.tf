@@ -522,7 +522,15 @@ variable "dd_service_name_override" {
 }
 
 variable "lb_secondary_target_group_name_override" {
-  description = "Override the name of the secondary load balancer target group. Maximum length is 32 characters."
+  description = <<-EOT
+    Override the name of the secondary load balancer target group. Maximum length is 32 characters.
+
+    For a service with a single lb_listeners entry, this value is used verbatim as the target
+    group name. For a service with more than one lb_listeners entry, each listener needs its own
+    secondary target group, so the listener index is appended (e.g. "<override>-0", "<override>-1")
+    and the result is truncated to 32 characters -- leave enough headroom in the override for that
+    suffix, or the collision this variable is meant to fix will reappear.
+  EOT
   type        = string
   default     = null
 

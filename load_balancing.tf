@@ -139,6 +139,24 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
+locals {
+  # lb_secondary_target_group_name_override is a flat string, but a service with more than one
+  # lb_listeners entry needs one secondary target group per listener. Appending the listener
+  # index keeps those names unique; a single-listener service keeps the override verbatim so
+  # existing users of the override (added for cross-service name collisions) see no change.
+  secondary_target_group_names = {
+    for idx, value in var.lb_listeners : idx => (
+      var.lb_secondary_target_group_name_override == null
+      ? trimsuffix(substr("${var.service_name}-secondary-${var.application_container.port}-${idx}", 0, 32), "-")
+      : (
+        length(var.lb_listeners) > 1
+        ? trimsuffix(substr("${var.lb_secondary_target_group_name_override}-${idx}", 0, 32), "-")
+        : var.lb_secondary_target_group_name_override
+      )
+    )
+  }
+}
+
 /*
  * ==== Blue listener setup
  *
@@ -147,10 +165,7 @@ resource "aws_lb_listener_rule" "service" {
 resource "aws_lb_target_group" "secondary" {
   for_each = { for idx, value in var.lb_listeners : idx => value }
 
-  name = coalesce(
-    var.lb_secondary_target_group_name_override,
-    trimsuffix(substr("${var.service_name}-secondary-${var.application_container.port}-${each.key}", 0, 32), "-")
-  )
+  name   = local.secondary_target_group_names[each.key]
   vpc_id = var.vpc_id
 
   target_type = "ip"
