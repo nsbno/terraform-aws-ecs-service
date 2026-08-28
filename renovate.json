@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>nsbno/vy-renovate-baseline:default"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^ecs\\.tf$/"],
+      "matchStrings": [
+        "image\\s*=\\s*\"(?<depName>[\\w./-]+):(?<currentValue>[\\w.-]+)@(?<currentDigest>sha256:[0-9a-f]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": ["ecs.tf"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "sidecar container images (minor/patch)",
+      "automerge": false
+    }
+  ]
+}

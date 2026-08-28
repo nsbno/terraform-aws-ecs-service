@@ -14,8 +14,9 @@ locals {
 
   xray_container = var.xray_daemon == true ? [
     {
-      name      = "aws-otel-collector",
-      image     = "amazon/aws-otel-collector",
+      name = "aws-otel-collector",
+      # Pinned to an exact version + digest. See the comment on datadog_containers below for why.
+      image     = "amazon/aws-otel-collector:v0.49.0@sha256:d2bdfff2c377c3d71d78bd5d9ce9862fd535b12134a5739d87a07801297cf9fd",
       command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
       essential = true
     }
@@ -58,13 +59,11 @@ locals {
     {
       name = "datadog-agent",
 
-      // Best case, we could pin this agent to an EXACT version, but it is too difficult to maintain
-      // and would've become a real pain for the users of this module, having to constantly upgrade.
-      // Therefore we lock it to a major version, reducing the risk of unexpected compatibility problems,
-      // while ensuring that these agents are running the latest (patched) version.
-      //
-      // Consider to revisit this approach in the future.
-      image             = "public.ecr.aws/datadog/agent:7",
+      // Pinned to an exact version + digest instead of a floating major tag (e.g. `:7`).
+      // A `minor`/`patch` bump from a third party can still break or take down services,
+      // so we don't want those pulled in automatically. renovate.json opens a PR for
+      // every new version instead.
+      image             = "public.ecr.aws/datadog/agent:7.79.0@sha256:725041efaf218ce4c93ebe293c3c9a28f74d8a9c08324e887d91222b74755ad0",
       essential         = true,
       cpu               = 64,
       memory_soft_limit = 256,
@@ -128,8 +127,9 @@ locals {
     #   aws ecs describe-container-instances --cluster <cluster> --container-instances <arn> \
     #     --query 'containerInstances[].versionInfo'
     {
-      name              = "log-router",
-      image             = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable",
+      name = "log-router",
+      # Pinned to an exact version + digest. See the comment on datadog_containers above for why.
+      image             = "public.ecr.aws/aws-observability/aws-for-fluent-bit:3.4.14@sha256:98fac55f86c10da436a17b4218888fd949e881e7a2e951e86add486904a9de20",
       essential         = true,
       cpu               = 64,
       memory_soft_limit = 256,
