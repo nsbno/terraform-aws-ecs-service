@@ -16,7 +16,7 @@ locals {
     {
       name = "aws-otel-collector",
       # Pinned to an exact version + digest. See the comment on datadog_containers below for why.
-      image     = "amazon/aws-otel-collector:v0.49.0@sha256:d2bdfff2c377c3d71d78bd5d9ce9862fd535b12134a5739d87a07801297cf9fd",
+      image     = "amazon/aws-otel-collector:v0.50.0@sha256:7968fb60db6a2390a47ba6a2df029745638486e285c9b2487da1b722d0855a3e",
       command   = ["--config=/etc/ecs/${var.xray_daemon_config_path}"]
       essential = true
     }
