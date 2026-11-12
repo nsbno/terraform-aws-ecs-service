@@ -178,11 +178,18 @@ locals {
   existing_node_options      = lookup(var.application_container.environment, "NODE_OPTIONS", "")
   existing_pythonpath        = lookup(var.application_container.environment, "PYTHONPATH", "")
 
-  # Filter out runtime-specific options from environment variables to avoid duplication
-  # These will be handled by autoinstrumentation module with appended values
+  # The variable each runtime uses to load its tracer.
+  instrumentation_env_key = {
+    jvm    = "JAVA_TOOL_OPTIONS"
+    node   = "NODE_OPTIONS"
+    python = "PYTHONPATH"
+  }
+
+  # Filter out the selected runtime's variable to avoid duplication
+  # It will be handled by autoinstrumentation module with appended values
   filtered_environment_variables = var.datadog_instrumentation_runtime == null ? var.application_container.environment : {
     for k, v in var.application_container.environment : k => v
-    if !contains(["JAVA_TOOL_OPTIONS", "NODE_OPTIONS", "PYTHONPATH"], k)
+    if k != local.instrumentation_env_key[var.datadog_instrumentation_runtime]
   }
 
   // A bit hacky. We're basically replicating var.datadog_options

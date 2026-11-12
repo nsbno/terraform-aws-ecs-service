@@ -41,7 +41,7 @@ locals {
       # The supported Python versions are the ddtrace_pkgs directories in this image.
       image = "public.ecr.aws/datadog/dd-lib-python-init:4"
 
-      command = ["cd /datadog-init; ./copy-lib.sh /datadog-instrumentation-init; ls -la /datadog-instrumentation-init"]
+      command = ["cd /datadog-init && ./copy-lib.sh /datadog-instrumentation-init && ls -la /datadog-instrumentation-init"]
 
       extra_options = {
         entrypoint = ["sh", "-c"]
