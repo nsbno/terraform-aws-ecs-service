@@ -176,12 +176,13 @@ locals {
 locals {
   existing_java_tool_options = lookup(var.application_container.environment, "JAVA_TOOL_OPTIONS", "")
   existing_node_options      = lookup(var.application_container.environment, "NODE_OPTIONS", "")
+  existing_pythonpath        = lookup(var.application_container.environment, "PYTHONPATH", "")
 
   # Filter out runtime-specific options from environment variables to avoid duplication
   # These will be handled by autoinstrumentation module with appended values
   filtered_environment_variables = var.datadog_instrumentation_runtime == null ? var.application_container.environment : {
     for k, v in var.application_container.environment : k => v
-    if !contains(["JAVA_TOOL_OPTIONS", "NODE_OPTIONS"], k)
+    if !contains(["JAVA_TOOL_OPTIONS", "NODE_OPTIONS", "PYTHONPATH"], k)
   }
 
   // A bit hacky. We're basically replicating var.datadog_options
@@ -219,6 +220,7 @@ module "autoinstrumentation_setup" {
 
   existing_java_tool_options = local.existing_java_tool_options
   existing_node_options      = local.existing_node_options
+  existing_pythonpath        = local.existing_pythonpath
 }
 
 module "env_vars_to_ssm_parameters" {

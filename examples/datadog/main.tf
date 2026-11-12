@@ -73,7 +73,7 @@ module "service" {
   service_name = module.datadog_service.service_name
 
   enable_datadog                  = true
-  datadog_instrumentation_runtime = "jvm" # Can be jvm or node
+  datadog_instrumentation_runtime = "jvm" # Can be jvm, node or python
 
   vpc_id             = data.aws_vpc.main.id
   private_subnet_ids = data.aws_subnets.private.ids
