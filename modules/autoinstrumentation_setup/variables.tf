@@ -1,5 +1,5 @@
 variable "datadog_instrumentation_runtime" {
-  description = "The runtime of the application that is being run by the service. Can be jvm or node"
+  description = "The runtime of the application that is being run by the service. Can be jvm, node or python"
   type        = string
   nullable    = false
 }
@@ -44,6 +44,12 @@ variable "existing_java_tool_options" {
 
 variable "existing_node_options" {
   description = "Existing NODE_OPTIONS value to append Datadog require to"
+  type        = string
+  default     = ""
+}
+
+variable "existing_pythonpath" {
+  description = "Existing PYTHONPATH value to append the Datadog injection directory to"
   type        = string
   default     = ""
 }

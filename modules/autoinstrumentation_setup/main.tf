@@ -36,6 +36,24 @@ locals {
         user = "0"
       }
     }
+    "python" : {
+      name = "datadog-auto-instrumentation-init"
+      # The supported Python versions are the ddtrace_pkgs directories in this image.
+      image = "public.ecr.aws/datadog/dd-lib-python-init:4"
+
+      command = ["cd /datadog-init && ./copy-lib.sh /datadog-instrumentation-init && ls -la /datadog-instrumentation-init"]
+
+      extra_options = {
+        entrypoint = ["sh", "-c"]
+        mountPoints = [
+          {
+            sourceVolume  = "datadog-instrumentation-init"
+            containerPath = "/datadog-instrumentation-init"
+          }
+        ]
+        user = "0"
+      }
+    }
   }
 
   auto_instrumentation_for_app_container_injection_extra_options = {
@@ -62,6 +80,37 @@ locals {
         DD_TAGS    = var.dd_team_tag
 
         // Different runtime security features that can be enabled in the service
+        DD_IAST_ENABLED       = var.dd_runtime_code_analysis
+        DD_APPSEC_SCA_ENABLED = var.dd_runtime_software_composition_analysis
+        DD_APPSEC_ENABLED     = var.dd_app_protection
+      }
+      extra_options = {
+        dependsOn = [
+          {
+            containerName = "datadog-auto-instrumentation-init",
+            condition     = "SUCCESS"
+          }
+        ]
+        volumesFrom = [
+          {
+            sourceContainer = "datadog-auto-instrumentation-init"
+            readOnly        = true
+          }
+        ]
+      }
+    }
+    "python" : {
+      environment = {
+        # Append to existing PYTHONPATH if it exists, otherwise just set it. The injected sitecustomize.py loads ddtrace.
+        PYTHONPATH = join(":", compact([var.existing_pythonpath, "/datadog-instrumentation-init"]))
+
+        DD_LOGS_INJECTION    = true
+        DD_PROFILING_ENABLED = var.dd_profiling_enabled
+
+        DD_SERVICE = var.dd_service
+        DD_ENV     = var.dd_env
+        DD_TAGS    = var.dd_team_tag
+
         DD_IAST_ENABLED       = var.dd_runtime_code_analysis
         DD_APPSEC_SCA_ENABLED = var.dd_runtime_software_composition_analysis
         DD_APPSEC_ENABLED     = var.dd_app_protection
